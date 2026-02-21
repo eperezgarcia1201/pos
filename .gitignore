@@ -14,6 +14,7 @@ yarn-error.log*
 **/.env
 **/.env.*
 !**/.env.example
+!**/.env.platform.example
 
 # Expo / React Native
 **/.expo/
