@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../lib/api";
+import CloudPortalPreferenceControls from "../components/CloudPortalPreferenceControls";
+import { useCloudPortalUi } from "../lib/cloudPortalUi";
 
 type StoreSummary = {
   id: string;
@@ -162,6 +164,44 @@ const UPDATE_AREA_OPTIONS = [
   { id: "custom", label: "Custom" }
 ];
 
+function updateAreaLabel(
+  id: string,
+  tx: (english: string, spanish: string, params?: Record<string, string | number>) => string
+) {
+  switch (id) {
+    case "services":
+      return tx("Services", "Servicios");
+    case "taxes":
+      return tx("Taxes", "Impuestos");
+    case "print":
+      return tx("Print", "Impresion");
+    case "store":
+      return tx("Store Info", "Info de tienda");
+    case "custom":
+      return tx("Custom", "Personalizado");
+    default:
+      return id;
+  }
+}
+
+function templatePresetLabel(
+  presetId: string,
+  tx: (english: string, spanish: string, params?: Record<string, string | number>) => string
+) {
+  switch (presetId) {
+    case "services":
+      return tx("Services", "Servicios");
+    case "taxes":
+      return tx("Taxes", "Impuestos");
+    case "print":
+      return tx("Print", "Impresion");
+    case "store":
+      return tx("Store", "Tienda");
+    default:
+      return presetId;
+  }
+}
+
 const DEFAULT_SERVICES_FORM: ServicesForm = {
   dineIn: true,
   takeOut: true,
@@ -226,6 +266,7 @@ function formatDate(value?: string | null) {
 export default function CloudStoreSync() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
+  const { tx } = useCloudPortalUi();
 
   const [stores, setStores] = useState<StoreSummary[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState(params.get("storeId") || "");
@@ -543,21 +584,27 @@ export default function CloudStoreSync() {
   };
 
   return (
-    <div className="screen-shell cloud-sync-shell">
-      <header className="screen-header">
+    <div className="screen-shell cloud-platform-shell cloud-sync-shell">
+      <header className="screen-header cloud-platform-topbar">
         <div>
-          <h2>Cloud Sync Console</h2>
-          <p>Publish desired state revisions and queue commands for store edge nodes.</p>
+          <h2>{tx("Cloud Sync Console", "Consola de sincronizacion cloud")}</h2>
+          <p>
+            {tx(
+              "Publish desired state revisions and queue commands for store edge nodes.",
+              "Publica revisiones de estado y encola comandos para nodos edge de tienda."
+            )}
+          </p>
         </div>
         <div className="terminal-actions">
+          <CloudPortalPreferenceControls />
           <button type="button" className="terminal-btn ghost" onClick={() => navigate("/settings/cloud-stores")}>
-            Stores
+            {tx("Stores", "Tiendas")}
           </button>
           <button type="button" className="terminal-btn ghost" onClick={() => navigate("/back-office")}>
-            Back Office
+            {tx("Back Office", "Back Office")}
           </button>
           <button type="button" className="terminal-btn primary" onClick={() => void refresh(selectedStoreId)} disabled={loading}>
-            {loading ? "Refreshing..." : "Refresh"}
+            {loading ? tx("Refreshing...", "Actualizando...") : tx("Refresh", "Actualizar")}
           </button>
         </div>
       </header>
@@ -565,7 +612,7 @@ export default function CloudStoreSync() {
       <section className="panel cloud-sync-store-panel">
         <div className="cloud-sync-store-head">
           <label>
-            Working Store
+            {tx("Working Store", "Tienda de trabajo")}
             <select
               value={selectedStoreId}
               onChange={(event) => {
@@ -575,7 +622,7 @@ export default function CloudStoreSync() {
                 if (value) void refresh(value);
               }}
             >
-              <option value="">Select a store</option>
+              <option value="">{tx("Select a store", "Selecciona una tienda")}</option>
               {stores.map((store) => (
                 <option key={store.id} value={store.id}>
                   {store.name} ({store.code})
@@ -585,15 +632,15 @@ export default function CloudStoreSync() {
           </label>
           <div className="cloud-sync-store-meta">
             <div className="cloud-sync-kpi-card">
-              <span>Pending</span>
+              <span>{tx("Pending", "Pendientes")}</span>
               <strong>{selectedStore?.pendingCommands ?? 0}</strong>
             </div>
             <div className="cloud-sync-kpi-card">
-              <span>Revisions</span>
+              <span>{tx("Revisions", "Revisiones")}</span>
               <strong>{selectedStore?.totalRevisions ?? 0}</strong>
             </div>
             <div className="cloud-sync-kpi-card">
-              <span>Nodes</span>
+              <span>{tx("Nodes", "Nodos")}</span>
               <strong>{selectedStore?.nodes.length ?? 0}</strong>
             </div>
           </div>
@@ -607,31 +654,39 @@ export default function CloudStoreSync() {
               </span>
             ))
           ) : (
-            <span className="hint">No nodes linked yet. Register onsite node first, then publish revisions.</span>
+            <span className="hint">
+              {tx(
+                "No nodes linked yet. Register onsite node first, then publish revisions.",
+                "Aun no hay nodos enlazados. Registra el nodo onsite primero y luego publica revisiones."
+              )}
+            </span>
           )}
         </div>
       </section>
 
       <div className="cloud-sync-grid">
         <section className="panel cloud-sync-publish-panel">
-          <h3>Publish Update</h3>
+          <h3>{tx("Publish Update", "Publicar actualizacion")}</h3>
           <p className="hint" style={{ marginTop: 0 }}>
-            Choose what to update, review values, then send it to store node(s).
+            {tx(
+              "Choose what to update, review values, then send it to store node(s).",
+              "Elige que actualizar, revisa valores y luego envialo al/los nodo(s) de tienda."
+            )}
           </p>
           <div className="cloud-platform-form-grid">
             <label>
-              Update Area
+              {tx("Update Area", "Area de actualizacion")}
               <select value={updateArea} onChange={(event) => onUpdateAreaChange(event.target.value)}>
                 {UPDATE_AREA_OPTIONS.map((option) => (
                   <option key={option.id} value={option.id}>
-                    {option.label}
+                    {updateAreaLabel(option.id, tx)}
                   </option>
                 ))}
               </select>
             </label>
 
             <label>
-              Settings Key
+              {tx("Settings Key", "Clave de configuracion")}
               <input list="cloud-sync-setting-key-options" value={settingKey} onChange={(event) => setSettingKey(event.target.value)} />
             </label>
             <datalist id="cloud-sync-setting-key-options">
@@ -641,9 +696,9 @@ export default function CloudStoreSync() {
             </datalist>
 
             <label>
-              Target Node (optional)
+              {tx("Target Node (optional)", "Nodo objetivo (opcional)")}
               <select value={nodeId} onChange={(event) => setNodeId(event.target.value)}>
-                <option value="">Any available node</option>
+                <option value="">{tx("Any available node", "Cualquier nodo disponible")}</option>
                 {(selectedStore?.nodes || []).map((node) => (
                   <option key={node.id} value={node.id}>
                     {node.label} ({node.status})
@@ -655,14 +710,14 @@ export default function CloudStoreSync() {
 
           <div className="cloud-sync-advanced-toggle">
             <button type="button" className="terminal-btn ghost" onClick={() => setShowAdvanced((prev) => !prev)}>
-              {showAdvanced ? "Hide Advanced Options" : "Show Advanced Options"}
+              {showAdvanced ? tx("Hide Advanced Options", "Ocultar opciones avanzadas") : tx("Show Advanced Options", "Mostrar opciones avanzadas")}
             </button>
           </div>
 
           {showAdvanced ? (
             <div className="cloud-platform-form-grid">
               <label>
-                Domain
+                {tx("Domain", "Dominio")}
                 <input list="cloud-sync-domain-options" value={domain} onChange={(event) => setDomain(event.target.value.toUpperCase())} />
               </label>
               <datalist id="cloud-sync-domain-options">
@@ -672,7 +727,7 @@ export default function CloudStoreSync() {
               </datalist>
 
               <label>
-                Command Type
+                {tx("Command Type", "Tipo de comando")}
                 <input
                   list="cloud-sync-command-type-options"
                   value={commandType}
@@ -690,7 +745,7 @@ export default function CloudStoreSync() {
           <div className="cloud-sync-template-row">
             {TEMPLATE_PRESETS.map((preset) => (
               <button key={preset.id} type="button" className="terminal-btn ghost" onClick={() => applyTemplate(preset)}>
-                {preset.label}
+                {templatePresetLabel(preset.id, tx)}
               </button>
             ))}
           </div>
@@ -703,7 +758,7 @@ export default function CloudStoreSync() {
                   checked={servicesForm.dineIn}
                   onChange={(event) => setServicesForm((prev) => ({ ...prev, dineIn: event.target.checked }))}
                 />
-                Dine In
+                {tx("Dine In", "Comer aqui")}
               </label>
               <label className="cloud-sync-toggle">
                 <input
@@ -711,7 +766,7 @@ export default function CloudStoreSync() {
                   checked={servicesForm.takeOut}
                   onChange={(event) => setServicesForm((prev) => ({ ...prev, takeOut: event.target.checked }))}
                 />
-                Take Out
+                {tx("Take Out", "Para llevar")}
               </label>
               <label className="cloud-sync-toggle">
                 <input
@@ -719,7 +774,7 @@ export default function CloudStoreSync() {
                   checked={servicesForm.delivery}
                   onChange={(event) => setServicesForm((prev) => ({ ...prev, delivery: event.target.checked }))}
                 />
-                Delivery
+                {tx("Delivery", "Entrega")}
               </label>
               <label className="cloud-sync-toggle">
                 <input
@@ -727,7 +782,7 @@ export default function CloudStoreSync() {
                   checked={servicesForm.driveThru}
                   onChange={(event) => setServicesForm((prev) => ({ ...prev, driveThru: event.target.checked }))}
                 />
-                Drive Thru
+                {tx("Drive Thru", "Auto servicio")}
               </label>
             </div>
           ) : null}
@@ -735,11 +790,11 @@ export default function CloudStoreSync() {
           {updateArea === "taxes" ? (
             <div className="cloud-sync-friendly-grid">
               <label>
-                Tax Alias
+                {tx("Tax Alias", "Alias de impuesto")}
                 <input value={taxesForm.alias} onChange={(event) => setTaxesForm((prev) => ({ ...prev, alias: event.target.value }))} />
               </label>
               <label>
-                Tax Rate (%)
+                {tx("Tax Rate (%)", "Tasa de impuesto (%)")}
                 <input
                   type="number"
                   step="0.01"
@@ -759,7 +814,7 @@ export default function CloudStoreSync() {
                   checked={taxesForm.enabled}
                   onChange={(event) => setTaxesForm((prev) => ({ ...prev, enabled: event.target.checked }))}
                 />
-                Tax Enabled
+                {tx("Tax Enabled", "Impuesto habilitado")}
               </label>
               <label className="cloud-sync-toggle">
                 <input
@@ -767,7 +822,7 @@ export default function CloudStoreSync() {
                   checked={taxesForm.applyTaxOnSurcharge}
                   onChange={(event) => setTaxesForm((prev) => ({ ...prev, applyTaxOnSurcharge: event.target.checked }))}
                 />
-                Apply Tax On Surcharge
+                {tx("Apply Tax On Surcharge", "Aplicar impuesto al recargo")}
               </label>
               <label className="cloud-sync-toggle">
                 <input
@@ -775,7 +830,7 @@ export default function CloudStoreSync() {
                   checked={taxesForm.applyTaxOnDeliveryCharge}
                   onChange={(event) => setTaxesForm((prev) => ({ ...prev, applyTaxOnDeliveryCharge: event.target.checked }))}
                 />
-                Apply Tax On Delivery Charge
+                {tx("Apply Tax On Delivery Charge", "Aplicar impuesto al cargo de entrega")}
               </label>
             </div>
           ) : null}
@@ -788,7 +843,7 @@ export default function CloudStoreSync() {
                   checked={printForm.printGuestCheckOnSend}
                   onChange={(event) => setPrintForm((prev) => ({ ...prev, printGuestCheckOnSend: event.target.checked }))}
                 />
-                Print Guest Check On Send
+                {tx("Print Guest Check On Send", "Imprimir ticket de cliente al enviar")}
               </label>
               <label className="cloud-sync-toggle">
                 <input
@@ -796,7 +851,7 @@ export default function CloudStoreSync() {
                   checked={printForm.printTwoCopiesOfGuestChecks}
                   onChange={(event) => setPrintForm((prev) => ({ ...prev, printTwoCopiesOfGuestChecks: event.target.checked }))}
                 />
-                Print Two Copies
+                {tx("Print Two Copies", "Imprimir dos copias")}
               </label>
               <label className="cloud-sync-toggle">
                 <input
@@ -804,7 +859,7 @@ export default function CloudStoreSync() {
                   checked={printForm.reprintNeedsManagerOverride}
                   onChange={(event) => setPrintForm((prev) => ({ ...prev, reprintNeedsManagerOverride: event.target.checked }))}
                 />
-                Reprint Needs Manager Override
+                {tx("Reprint Needs Manager Override", "Reimpresion requiere autorizacion de gerente")}
               </label>
             </div>
           ) : null}
@@ -812,22 +867,22 @@ export default function CloudStoreSync() {
           {updateArea === "store" ? (
             <div className="cloud-sync-friendly-grid">
               <label>
-                Store Name
+                {tx("Store Name", "Nombre de tienda")}
                 <input value={storeForm.name} onChange={(event) => setStoreForm((prev) => ({ ...prev, name: event.target.value }))} />
               </label>
               <label>
-                Timezone
+                {tx("Timezone", "Zona horaria")}
                 <input value={storeForm.timezone} onChange={(event) => setStoreForm((prev) => ({ ...prev, timezone: event.target.value }))} />
               </label>
               <label>
-                Daily Start Time
+                {tx("Daily Start Time", "Hora de inicio diario")}
                 <input
                   value={storeForm.dailyStartTime}
                   onChange={(event) => setStoreForm((prev) => ({ ...prev, dailyStartTime: event.target.value }))}
                 />
               </label>
               <label>
-                Lunch Start Time
+                {tx("Lunch Start Time", "Hora de inicio de lunch")}
                 <input
                   value={storeForm.lunchStartTime}
                   onChange={(event) => setStoreForm((prev) => ({ ...prev, lunchStartTime: event.target.value }))}
@@ -839,14 +894,14 @@ export default function CloudStoreSync() {
           {updateArea !== "custom" ? (
             <div className="cloud-sync-advanced-toggle">
               <button type="button" className="terminal-btn ghost" onClick={() => setShowRawJsonEditor((prev) => !prev)}>
-                {showRawJsonEditor ? "Hide Raw JSON" : "Edit Raw JSON (Advanced)"}
+                {showRawJsonEditor ? tx("Hide Raw JSON", "Ocultar JSON crudo") : tx("Edit Raw JSON (Advanced)", "Editar JSON crudo (avanzado)")}
               </button>
             </div>
           ) : null}
 
           {showRawJsonEditor || updateArea === "custom" ? (
             <label className="cloud-sync-json-field">
-              Raw JSON
+              {tx("Raw JSON", "JSON crudo")}
               <textarea value={jsonValue} onChange={(event) => setJsonValue(event.target.value)} rows={12} className="cloud-sync-json-editor" />
             </label>
           ) : null}
@@ -854,13 +909,13 @@ export default function CloudStoreSync() {
           <div className="cloud-sync-publish-footer">
             {showRawJsonEditor || updateArea === "custom" ? (
               <span className={`cloud-sync-json-state ${jsonIsValid ? "is-valid" : "is-invalid"}`}>
-                {jsonIsValid ? "JSON is valid" : "JSON is invalid"}
+                {jsonIsValid ? tx("JSON is valid", "JSON valido") : tx("JSON is invalid", "JSON invalido")}
               </span>
             ) : (
-              <span className="cloud-sync-json-state is-neutral">Simple mode active</span>
+              <span className="cloud-sync-json-state is-neutral">{tx("Simple mode active", "Modo simple activo")}</span>
             )}
             <button type="button" className="terminal-btn primary" onClick={() => void publish()} disabled={publishing || !selectedStoreId}>
-              {publishing ? "Publishing..." : "Publish Revision"}
+              {publishing ? tx("Publishing...", "Publicando...") : tx("Publish Revision", "Publicar revision")}
             </button>
           </div>
 
@@ -871,14 +926,14 @@ export default function CloudStoreSync() {
         <section className="panel cloud-sync-activity-panel">
           <div className="cloud-sync-activity-grid">
             <div className="cloud-platform-table-block">
-              <h3>Latest Revisions</h3>
+              <h3>{tx("Latest Revisions", "Ultimas revisiones")}</h3>
               <div className="cloud-platform-table-wrap">
                 <table className="cloud-platform-table">
                   <thead>
                     <tr>
-                      <th>Domain</th>
-                      <th>Revision</th>
-                      <th>Published</th>
+                      <th>{tx("Domain", "Dominio")}</th>
+                      <th>{tx("Revision", "Revision")}</th>
+                      <th>{tx("Published", "Publicado")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -893,29 +948,29 @@ export default function CloudStoreSync() {
                 </table>
                 {!loading && latestRevisions.length === 0 ? (
                   <p className="hint" style={{ margin: 0, padding: "10px 12px" }}>
-                    No revisions published yet.
+                    {tx("No revisions published yet.", "No hay revisiones publicadas todavia.")}
                   </p>
                 ) : null}
               </div>
             </div>
 
             <div className="cloud-platform-table-block">
-              <h3>Command Queue</h3>
+              <h3>{tx("Command Queue", "Cola de comandos")}</h3>
               <div className="cloud-sync-queue-summary">
-                <span className="cloud-node-status pending">PENDING {queueStats.pending}</span>
-                <span className="cloud-node-status acked">ACKED {queueStats.acked}</span>
-                <span className="cloud-node-status failed">FAILED {queueStats.failed}</span>
+                <span className="cloud-node-status pending">{tx("PENDING", "PENDIENTE")} {queueStats.pending}</span>
+                <span className="cloud-node-status acked">{tx("ACKED", "CONFIRMADO")} {queueStats.acked}</span>
+                <span className="cloud-node-status failed">{tx("FAILED", "FALLIDO")} {queueStats.failed}</span>
               </div>
               <div className="cloud-platform-table-wrap">
                 <table className="cloud-platform-table">
                   <thead>
                     <tr>
-                      <th>Status</th>
-                      <th>Type</th>
-                      <th>Node</th>
-                      <th>Revision</th>
-                      <th>Issued</th>
-                      <th>Action</th>
+                      <th>{tx("Status", "Estado")}</th>
+                      <th>{tx("Type", "Tipo")}</th>
+                      <th>{tx("Node", "Nodo")}</th>
+                      <th>{tx("Revision", "Revision")}</th>
+                      <th>{tx("Issued", "Emitido")}</th>
+                      <th>{tx("Action", "Accion")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -931,25 +986,25 @@ export default function CloudStoreSync() {
                             <div>{command.commandType}</div>
                             <div className="hint">{command.domain}</div>
                           </td>
-                          <td>{command.node?.label || "Any node"}</td>
+                          <td>{command.node?.label || tx("Any node", "Cualquier nodo")}</td>
                           <td>{command.revisionRef ? `#${command.revisionRef.revision}` : "-"}</td>
                           <td>{formatDate(command.issuedAt)}</td>
                           <td>
                             <div className="cloud-network-action-row">
-                              <button type="button" className="terminal-btn" onClick={() => void inspectCommand(command.id)}>
-                                Logs ({command._count?.logs || 0})
-                              </button>
-                              {canRetry ? (
-                                <button
-                                  type="button"
-                                  className="terminal-btn primary"
-                                  onClick={() => void retryCommand(command.id)}
-                                  disabled={retryingCommandId === command.id}
-                                >
-                                  {retryingCommandId === command.id ? "Retrying..." : "Retry"}
+                                <button type="button" className="terminal-btn" onClick={() => void inspectCommand(command.id)}>
+                                {tx("Logs", "Logs")} ({command._count?.logs || 0})
                                 </button>
-                              ) : null}
-                            </div>
+                                {canRetry ? (
+                                  <button
+                                    type="button"
+                                    className="terminal-btn primary"
+                                    onClick={() => void retryCommand(command.id)}
+                                    disabled={retryingCommandId === command.id}
+                                  >
+                                  {retryingCommandId === command.id ? tx("Retrying...", "Reintentando...") : tx("Retry", "Reintentar")}
+                                  </button>
+                                ) : null}
+                              </div>
                           </td>
                         </tr>
                       );
@@ -958,7 +1013,7 @@ export default function CloudStoreSync() {
                 </table>
                 {!loading && commands.length === 0 ? (
                   <p className="hint" style={{ margin: 0, padding: "10px 12px" }}>
-                    No commands queued yet.
+                    {tx("No commands queued yet.", "No hay comandos en cola todavia.")}
                   </p>
                 ) : null}
               </div>
@@ -966,18 +1021,18 @@ export default function CloudStoreSync() {
           </div>
 
           <div className="cloud-platform-table-block">
-            <h3>Command Detail & Logs</h3>
+            <h3>{tx("Command Detail & Logs", "Detalle de comando y logs")}</h3>
             {selectedCommand ? (
               <div className="cloud-sync-selected-command">
                 <div className="hint">
-                  Command: <code>{selectedCommand.id}</code>
+                  {tx("Command", "Comando")}: <code>{selectedCommand.id}</code>
                 </div>
                 <span className={`cloud-node-status ${String(selectedCommand.status || "").toLowerCase()}`}>{selectedCommand.status}</span>
-                <div className="hint">Issued: {formatDate(selectedCommand.issuedAt)}</div>
-                <div className="hint">Acknowledged: {formatDate(selectedCommand.acknowledgedAt)}</div>
+                <div className="hint">{tx("Issued", "Emitido")}: {formatDate(selectedCommand.issuedAt)}</div>
+                <div className="hint">{tx("Acknowledged", "Confirmado")}: {formatDate(selectedCommand.acknowledgedAt)}</div>
               </div>
             ) : (
-              <p className="hint">Select a command from the queue to inspect logs.</p>
+              <p className="hint">{tx("Select a command from the queue to inspect logs.", "Selecciona un comando de la cola para revisar logs.")}</p>
             )}
             {selectedCommand?.errorDetail ? (
               <pre className="ticket-preview">
@@ -986,15 +1041,15 @@ export default function CloudStoreSync() {
               </pre>
             ) : null}
             <div className="cloud-platform-table-wrap">
-              <table className="cloud-platform-table">
-                <thead>
-                  <tr>
-                    <th>Status</th>
-                    <th>Node</th>
-                    <th>Time</th>
-                    <th>Detail</th>
-                  </tr>
-                </thead>
+                <table className="cloud-platform-table">
+                  <thead>
+                    <tr>
+                      <th>{tx("Status", "Estado")}</th>
+                      <th>{tx("Node", "Nodo")}</th>
+                      <th>{tx("Time", "Hora")}</th>
+                      <th>{tx("Detail", "Detalle")}</th>
+                    </tr>
+                  </thead>
                 <tbody>
                   {commandLogs.map((log) => (
                     <tr key={log.id}>
@@ -1013,12 +1068,12 @@ export default function CloudStoreSync() {
               </table>
               {!loadingLogs && selectedCommandId && commandLogs.length === 0 ? (
                 <p className="hint" style={{ margin: 0, padding: "10px 12px" }}>
-                  No logs yet for this command.
+                  {tx("No logs yet for this command.", "Aun no hay logs para este comando.")}
                 </p>
               ) : null}
               {loadingLogs ? (
                 <p className="hint" style={{ margin: 0, padding: "10px 12px" }}>
-                  Loading logs...
+                  {tx("Loading logs...", "Cargando logs...")}
                 </p>
               ) : null}
             </div>

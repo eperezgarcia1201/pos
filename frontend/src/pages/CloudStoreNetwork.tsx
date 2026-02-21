@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/api";
+import CloudPortalPreferenceControls from "../components/CloudPortalPreferenceControls";
+import { useCloudPortalUi } from "../lib/cloudPortalUi";
 
 type CloudAccountType = "OWNER" | "RESELLER" | "TENANT_ADMIN";
 type NodeHealth = "ONLINE" | "STALE" | "OFFLINE";
@@ -248,6 +250,7 @@ function resolveBackOfficeBaseUrl(rawBaseUrl: string | null | undefined) {
 
 export default function CloudStoreNetwork() {
   const navigate = useNavigate();
+  const { tx } = useCloudPortalUi();
   const [sessionBooting, setSessionBooting] = useState(true);
   const [authLoading, setAuthLoading] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -757,29 +760,35 @@ export default function CloudStoreNetwork() {
   };
 
   return (
-    <div className="screen-shell cloud-network-shell">
-      <header className="screen-header">
+    <div className="screen-shell cloud-platform-shell cloud-network-shell">
+      <header className="screen-header cloud-platform-topbar">
         <div>
-          <h2>Cloud Store Network</h2>
-          <p>Dedicated onsite server map for owner, reseller, and tenant operations.</p>
+          <h2>{tx("Cloud Store Network", "Red de tiendas cloud")}</h2>
+          <p>
+            {tx(
+              "Dedicated onsite server map for owner, reseller, and tenant operations.",
+              "Mapa dedicado de servidores onsite para operaciones de owner, revendedor e inquilino."
+            )}
+          </p>
         </div>
         <div className="terminal-actions">
+          <CloudPortalPreferenceControls />
           <button type="button" className="terminal-btn ghost" onClick={() => navigate("/settings/cloud-stores")}>
-            Hierarchy
+            {tx("Hierarchy", "Jerarquia")}
           </button>
           <button type="button" className="terminal-btn ghost" onClick={() => navigate("/settings/cloud-sync")}>
-            Sync Console
+            {tx("Sync Console", "Consola de sincronizacion")}
           </button>
           <button type="button" className="terminal-btn ghost" onClick={() => navigate("/back-office")}>
-            Back Office
+            {tx("Back Office", "Back Office")}
           </button>
           {cloudAccount ? (
             <>
               <button type="button" className="terminal-btn" onClick={signOut}>
-                Sign Out Cloud
+                {tx("Sign Out Cloud", "Cerrar sesion cloud")}
               </button>
               <button type="button" className="terminal-btn primary" onClick={() => void refreshData()} disabled={loading}>
-                {loading ? "Refreshing..." : "Refresh"}
+                {loading ? tx("Refreshing...", "Actualizando...") : tx("Refresh", "Actualizar")}
               </button>
             </>
           ) : null}
@@ -788,18 +797,18 @@ export default function CloudStoreNetwork() {
 
       {sessionBooting ? (
         <section className="panel cloud-platform-auth">
-          <h3>Loading Cloud Session</h3>
-          <p className="hint">Checking existing cloud credentials...</p>
+          <h3>{tx("Loading Cloud Session", "Cargando sesion cloud")}</h3>
+          <p className="hint">{tx("Checking existing cloud credentials...", "Verificando credenciales cloud...")}</p>
         </section>
       ) : null}
 
       {!sessionBooting && !cloudAccount ? (
         <section className="panel cloud-platform-auth">
-          <h3>Cloud Login</h3>
-          <p className="hint">Sign in to access store network controls.</p>
+          <h3>{tx("Cloud Login", "Login cloud")}</h3>
+          <p className="hint">{tx("Sign in to access store network controls.", "Inicia sesion para acceder a los controles de red de tiendas.")}</p>
           <div className="cloud-platform-form-grid" style={{ marginTop: 10 }}>
             <label>
-              Email
+              {tx("Email", "Correo")}
               <input
                 value={loginEmail}
                 onChange={(event) => setLoginEmail(event.target.value)}
@@ -807,18 +816,18 @@ export default function CloudStoreNetwork() {
               />
             </label>
             <label>
-              Password
+              {tx("Password", "Contrasena")}
               <input
                 type="password"
                 value={loginPassword}
                 onChange={(event) => setLoginPassword(event.target.value)}
-                placeholder="Enter password"
+                placeholder={tx("Enter password", "Ingresa contrasena")}
               />
             </label>
           </div>
           <div className="cloud-platform-inline-actions" style={{ marginTop: 12 }}>
             <button type="button" className="terminal-btn primary" onClick={() => void signIn()} disabled={authLoading}>
-              {authLoading ? "Signing In..." : "Sign In"}
+              {authLoading ? tx("Signing In...", "Entrando...") : tx("Sign In", "Entrar")}
             </button>
           </div>
         </section>
@@ -827,36 +836,36 @@ export default function CloudStoreNetwork() {
       {!sessionBooting && cloudAccount ? (
         <div className="screen-grid cloud-network-grid">
           <section className="panel cloud-network-summary-panel">
-            <h3>Network Scope</h3>
+            <h3>{tx("Network Scope", "Alcance de red")}</h3>
             <div className="cloud-network-summary">
               <article className="cloud-network-chip">
                 <strong>{summary.storesTotal}</strong>
-                <span>Stores</span>
+                <span>{tx("Stores", "Tiendas")}</span>
               </article>
               <article className="cloud-network-chip">
                 <strong>{summary.storesLinked}</strong>
-                <span>Linked Stores</span>
+                <span>{tx("Linked Stores", "Tiendas enlazadas")}</span>
               </article>
               <article className="cloud-network-chip">
                 <strong>{summary.nodesOnline}</strong>
-                <span>Online Nodes</span>
+                <span>{tx("Online Nodes", "Nodos en linea")}</span>
               </article>
               <article className="cloud-network-chip">
                 <strong>{summary.nodesStale}</strong>
-                <span>Stale Nodes</span>
+                <span>{tx("Stale Nodes", "Nodos atrasados")}</span>
               </article>
               <article className="cloud-network-chip">
                 <strong>{summary.nodesOffline}</strong>
-                <span>Offline Nodes</span>
+                <span>{tx("Offline Nodes", "Nodos fuera de linea")}</span>
               </article>
             </div>
 
             <div className="cloud-platform-filter-row">
               {cloudAccount.accountType === "OWNER" ? (
                 <label>
-                  Reseller
+                  {tx("Reseller", "Revendedor")}
                   <select value={filterResellerId} onChange={(event) => setFilterResellerId(event.target.value)}>
-                    <option value="">All resellers</option>
+                    <option value="">{tx("All resellers", "Todos los revendedores")}</option>
                     {resellers.map((reseller) => (
                       <option key={reseller.id} value={reseller.id}>
                         {reseller.name} ({reseller.code})
@@ -867,9 +876,9 @@ export default function CloudStoreNetwork() {
               ) : null}
 
               <label>
-                Tenant
+                {tx("Tenant", "Inquilino")}
                 <select value={filterTenantId} onChange={(event) => setFilterTenantId(event.target.value)}>
-                  <option value="">All tenants</option>
+                  <option value="">{tx("All tenants", "Todos los inquilinos")}</option>
                   {tenants.map((tenant) => (
                     <option key={tenant.id} value={tenant.id}>
                       {tenant.name} ({tenant.slug})
@@ -879,9 +888,9 @@ export default function CloudStoreNetwork() {
               </label>
 
               <label>
-                Node Status
+                {tx("Node Status", "Estado del nodo")}
                 <select value={filterNodeStatus} onChange={(event) => setFilterNodeStatus(event.target.value as NodeHealth | "")}>
-                  <option value="">All nodes</option>
+                  <option value="">{tx("All nodes", "Todos los nodos")}</option>
                   <option value="ONLINE">ONLINE</option>
                   <option value="STALE">STALE</option>
                   <option value="OFFLINE">OFFLINE</option>
@@ -895,24 +904,28 @@ export default function CloudStoreNetwork() {
                 checked={includeUnlinked}
                 onChange={(event) => setIncludeUnlinked(event.target.checked)}
               />
-              Include stores that are not linked to onsite yet
+              {tx("Include stores that are not linked to onsite yet", "Incluir tiendas que aun no estan enlazadas con onsite")}
             </label>
 
             {unlinkedStores.length > 0 ? (
               <p className="hint" style={{ margin: 0 }}>
-                Unlinked stores: {unlinkedStores.map((store) => `${store.name} (${store.code})`).join(", ")}
+                {tx("Unlinked stores", "Tiendas no enlazadas")}:{" "}
+                {unlinkedStores.map((store) => `${store.name} (${store.code})`).join(", ")}
               </p>
             ) : null}
           </section>
 
           <section className="panel cloud-network-claim-panel">
-            <h3>Claim Onsite Server</h3>
+            <h3>{tx("Claim Onsite Server", "Registrar servidor onsite")}</h3>
             <p className="hint" style={{ marginTop: 0 }}>
-              Pair local server UID and add it into the reseller/tenant dashboard.
+              {tx(
+                "Pair local server UID and add it into the reseller/tenant dashboard.",
+                "Vincula el UID del servidor local y agregalo al panel de revendedor/inquilino."
+              )}
             </p>
             <div className="cloud-platform-form-grid">
               <label>
-                Onsite URL
+                {tx("Onsite URL", "URL onsite")}
                 <input
                   value={claimDraft.onsiteBaseUrl}
                   onChange={(event) => setClaimDraft((prev) => ({ ...prev, onsiteBaseUrl: event.target.value }))}
@@ -920,7 +933,7 @@ export default function CloudStoreNetwork() {
                 />
               </label>
               <label>
-                Claim ID
+                {tx("Claim ID", "ID de claim")}
                 <input
                   value={claimDraft.claimId}
                   onChange={(event) => setClaimDraft((prev) => ({ ...prev, claimId: event.target.value }))}
@@ -928,7 +941,7 @@ export default function CloudStoreNetwork() {
                 />
               </label>
               <label>
-                Claim Code
+                {tx("Claim Code", "Codigo de claim")}
                 <input
                   value={claimDraft.claimCode}
                   onChange={(event) => setClaimDraft((prev) => ({ ...prev, claimCode: event.target.value }))}
@@ -936,12 +949,12 @@ export default function CloudStoreNetwork() {
                 />
               </label>
               <label>
-                Tenant
+                {tx("Tenant", "Inquilino")}
                 <select
                   value={claimDraft.tenantId}
                   onChange={(event) => setClaimDraft((prev) => ({ ...prev, tenantId: event.target.value }))}
                 >
-                  <option value="">Select tenant</option>
+                  <option value="">{tx("Select tenant", "Selecciona inquilino")}</option>
                   {tenants.map((tenant) => (
                     <option key={tenant.id} value={tenant.id}>
                       {tenant.name} ({tenant.slug})
@@ -950,7 +963,7 @@ export default function CloudStoreNetwork() {
                 </select>
               </label>
               <label>
-                Store Name Override (optional)
+                {tx("Store Name Override (optional)", "Reemplazo nombre de tienda (opcional)")}
                 <input
                   value={claimDraft.storeName}
                   onChange={(event) => setClaimDraft((prev) => ({ ...prev, storeName: event.target.value }))}
@@ -958,7 +971,7 @@ export default function CloudStoreNetwork() {
                 />
               </label>
               <label>
-                Store Code Override (optional)
+                {tx("Store Code Override (optional)", "Reemplazo codigo de tienda (opcional)")}
                 <input
                   value={claimDraft.storeCode}
                   onChange={(event) => setClaimDraft((prev) => ({ ...prev, storeCode: event.target.value }))}
@@ -966,7 +979,7 @@ export default function CloudStoreNetwork() {
                 />
               </label>
               <label>
-                Timezone
+                {tx("Timezone", "Zona horaria")}
                 <input
                   value={claimDraft.timezone}
                   onChange={(event) => setClaimDraft((prev) => ({ ...prev, timezone: event.target.value }))}
@@ -974,7 +987,7 @@ export default function CloudStoreNetwork() {
                 />
               </label>
               <label>
-                Node Label
+                {tx("Node Label", "Etiqueta del nodo")}
                 <input
                   value={claimDraft.nodeLabel}
                   onChange={(event) => setClaimDraft((prev) => ({ ...prev, nodeLabel: event.target.value }))}
@@ -982,7 +995,7 @@ export default function CloudStoreNetwork() {
                 />
               </label>
               <label>
-                Cloud Base URL (optional)
+                {tx("Cloud Base URL (optional)", "URL base cloud (opcional)")}
                 <input
                   value={claimDraft.cloudBaseUrl}
                   onChange={(event) => setClaimDraft((prev) => ({ ...prev, cloudBaseUrl: event.target.value }))}
@@ -992,23 +1005,23 @@ export default function CloudStoreNetwork() {
             </div>
             <div className="cloud-platform-inline-actions">
               <button type="button" className="terminal-btn primary" onClick={() => void claimOnsiteServer()} disabled={claiming}>
-                {claiming ? "Claiming..." : "Claim + Link"}
+                {claiming ? tx("Claiming...", "Registrando...") : tx("Claim + Link", "Registrar + enlazar")}
               </button>
             </div>
             {claimResult?.store ? (
               <div className="cloud-platform-meta-list">
                 <div>
-                  <span className="hint">Cloud Store</span>
+                  <span className="hint">{tx("Cloud Store", "Tienda cloud")}</span>
                   <strong>
                     {claimResult.store.name} ({claimResult.store.code})
                   </strong>
                 </div>
                 <div>
-                  <span className="hint">Node Key</span>
+                  <span className="hint">{tx("Node Key", "Clave de nodo")}</span>
                   <strong>{claimResult.node?.nodeKey || "-"}</strong>
                 </div>
                 <div>
-                  <span className="hint">Onsite UID</span>
+                  <span className="hint">{tx("Onsite UID", "UID onsite")}</span>
                   <strong>{claimResult.onsite?.serverUid || "-"}</strong>
                 </div>
               </div>
@@ -1016,13 +1029,16 @@ export default function CloudStoreNetwork() {
           </section>
 
           <section className="panel cloud-network-remote-panel">
-            <h3>Reseller Remote Actions</h3>
+            <h3>{tx("Reseller Remote Actions", "Acciones remotas de revendedor")}</h3>
             <p className="hint" style={{ marginTop: 0 }}>
-              Queue remote commands for onsite servers without direct SSH/remote desktop.
+              {tx(
+                "Queue remote commands for onsite servers without direct SSH/remote desktop.",
+                "Cola de comandos remotos para servidores onsite sin SSH/escritorio remoto."
+              )}
             </p>
             <div className="cloud-platform-form-grid">
               <label>
-                Store
+                {tx("Store", "Tienda")}
                 <select
                   value={remoteActionDraft.storeId}
                   onChange={(event) =>
@@ -1033,7 +1049,7 @@ export default function CloudStoreNetwork() {
                     }))
                   }
                 >
-                  <option value="">Select store</option>
+                  <option value="">{tx("Select store", "Selecciona tienda")}</option>
                   {actionableStores.map((store) => (
                     <option key={store.id} value={store.id}>
                       {store.name} ({store.code})
@@ -1043,7 +1059,7 @@ export default function CloudStoreNetwork() {
               </label>
 
               <label>
-                Action
+                {tx("Action", "Accion")}
                 <select
                   value={remoteActionDraft.action}
                   onChange={(event) =>
@@ -1062,17 +1078,17 @@ export default function CloudStoreNetwork() {
                     })
                   }
                 >
-                  <option value="HEARTBEAT_NOW">Heartbeat now</option>
-                  <option value="SYNC_PULL">Sync pull</option>
-                  <option value="RUN_DIAGNOSTICS">Run diagnostics</option>
-                  <option value="RELOAD_SETTINGS">Reload settings</option>
-                  <option value="RESTART_BACKEND">Restart backend</option>
-                  <option value="RESTART_AGENT">Restart agent</option>
+                  <option value="HEARTBEAT_NOW">{tx("Heartbeat now", "Latido ahora")}</option>
+                  <option value="SYNC_PULL">{tx("Sync pull", "Sincronizar pull")}</option>
+                  <option value="RUN_DIAGNOSTICS">{tx("Run diagnostics", "Ejecutar diagnosticos")}</option>
+                  <option value="RELOAD_SETTINGS">{tx("Reload settings", "Recargar configuracion")}</option>
+                  <option value="RESTART_BACKEND">{tx("Restart backend", "Reiniciar backend")}</option>
+                  <option value="RESTART_AGENT">{tx("Restart agent", "Reiniciar agente")}</option>
                 </select>
               </label>
 
               <label>
-                Node
+                {tx("Node", "Nodo")}
                 <select
                   value={remoteActionDraft.nodeId}
                   onChange={(event) =>
@@ -1083,7 +1099,7 @@ export default function CloudStoreNetwork() {
                   }
                   disabled={remoteActionDraft.targetAllNodes}
                 >
-                  <option value="">Select node</option>
+                  <option value="">{tx("Select node", "Selecciona nodo")}</option>
                   {(dispatchStore?.nodes || []).map((node) => (
                     <option key={node.id} value={node.id}>
                       {node.label} ({node.nodeKey})
@@ -1093,7 +1109,7 @@ export default function CloudStoreNetwork() {
               </label>
 
               <label>
-                Note (optional)
+                {tx("Note (optional)", "Nota (opcional)")}
                 <input
                   value={remoteActionDraft.note}
                   onChange={(event) =>
@@ -1108,7 +1124,7 @@ export default function CloudStoreNetwork() {
 
               {remoteActionNeedsParameters ? (
                 <label style={{ gridColumn: "1 / -1" }}>
-                  Restart Parameters
+                  {tx("Restart Parameters", "Parametros de reinicio")}
                   <textarea
                     value={remoteActionDraft.parametersJson}
                     onChange={(event) =>
@@ -1144,7 +1160,7 @@ export default function CloudStoreNetwork() {
                   }))
                 }
               />
-              Send to all nodes in selected store
+              {tx("Send to all nodes in selected store", "Enviar a todos los nodos de la tienda seleccionada")}
             </label>
 
             <div className="cloud-platform-inline-actions">
@@ -1154,27 +1170,29 @@ export default function CloudStoreNetwork() {
                 onClick={() => void dispatchRemoteAction()}
                 disabled={dispatchingAction}
               >
-                {dispatchingAction ? "Queueing..." : "Queue Remote Action"}
+                {dispatchingAction
+                  ? tx("Queueing...", "Encolando...")
+                  : tx("Queue Remote Action", "Encolar accion remota")}
               </button>
             </div>
           </section>
 
           <section className="panel cloud-network-table-panel">
-            <h3>Onsite Linked Stores</h3>
+            <h3>{tx("Onsite Linked Stores", "Tiendas onsite enlazadas")}</h3>
             <div className="cloud-network-table-wrap">
               <table className="cloud-network-table">
                 <thead>
                   <tr>
-                    <th>Reseller</th>
-                    <th>Tenant</th>
-                    <th>Store</th>
-                    <th>Node</th>
-                    <th>Server UID</th>
-                    <th>Onsite URL</th>
-                    <th>Status</th>
-                    <th>Heartbeat</th>
-                    <th>Updated</th>
-                    <th>Actions</th>
+                    <th>{tx("Reseller", "Revendedor")}</th>
+                    <th>{tx("Tenant", "Inquilino")}</th>
+                    <th>{tx("Store", "Tienda")}</th>
+                    <th>{tx("Node", "Nodo")}</th>
+                    <th>{tx("Server UID", "UID servidor")}</th>
+                    <th>{tx("Onsite URL", "URL onsite")}</th>
+                    <th>{tx("Status", "Estado")}</th>
+                    <th>{tx("Heartbeat", "Latido")}</th>
+                    <th>{tx("Updated", "Actualizado")}</th>
+                    <th>{tx("Actions", "Acciones")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1205,7 +1223,7 @@ export default function CloudStoreNetwork() {
                             onClick={() => void quickDispatch(store.id, node.id, "HEARTBEAT_NOW", "Quick heartbeat")}
                             disabled={dispatchingAction}
                           >
-                            Heartbeat
+                            {tx("Heartbeat", "Latido")}
                           </button>
                           <button
                             type="button"
@@ -1213,7 +1231,7 @@ export default function CloudStoreNetwork() {
                             onClick={() => void quickDispatch(store.id, node.id, "SYNC_PULL", "Quick sync pull")}
                             disabled={dispatchingAction}
                           >
-                            Sync
+                            {tx("Sync", "Sincronizar")}
                           </button>
                           <button
                             type="button"
@@ -1221,7 +1239,7 @@ export default function CloudStoreNetwork() {
                             onClick={() => void quickDispatch(store.id, node.id, "RUN_DIAGNOSTICS", "Quick diagnostics")}
                             disabled={dispatchingAction}
                           >
-                            Diagnostics
+                            {tx("Diagnostics", "Diagnosticos")}
                           </button>
                           <button
                             type="button"
@@ -1229,7 +1247,7 @@ export default function CloudStoreNetwork() {
                             disabled={!cloudToken || !resolveBackOfficeBaseUrl(node.onsiteBaseUrl || store.edgeBaseUrl || "")}
                             onClick={() => void openCustomerBackOffice(store, node)}
                           >
-                            Open Customer Back Office
+                            {tx("Open Customer Back Office", "Abrir Back Office del cliente")}
                           </button>
                           <button
                             type="button"
@@ -1237,7 +1255,7 @@ export default function CloudStoreNetwork() {
                             disabled={rotatingNodeId === node.id}
                             onClick={() => void rotateNodeToken(node.id, node.nodeKey)}
                           >
-                            {rotatingNodeId === node.id ? "Rotating..." : "Rotate Token"}
+                            {rotatingNodeId === node.id ? tx("Rotating...", "Rotando...") : tx("Rotate Token", "Rotar token")}
                           </button>
                         </div>
                       </td>
@@ -1247,17 +1265,17 @@ export default function CloudStoreNetwork() {
               </table>
               {flattenedRows.length === 0 ? (
                 <p className="hint" style={{ padding: "10px 2px", margin: 0 }}>
-                  No onsite nodes found in this scope.
+                  {tx("No onsite nodes found in this scope.", "No se encontraron nodos onsite en este alcance.")}
                 </p>
               ) : null}
             </div>
           </section>
 
           <section className="panel cloud-network-activity-panel">
-            <h3>Recent Remote Actions</h3>
+            <h3>{tx("Recent Remote Actions", "Acciones remotas recientes")}</h3>
             <div className="cloud-platform-filter-row">
               <label>
-                Action Status Filter
+                {tx("Action Status Filter", "Filtro de estado de accion")}
                 <input
                   value={actionStatusFilter}
                   onChange={(event) => setActionStatusFilter(event.target.value.toUpperCase())}
@@ -1269,15 +1287,15 @@ export default function CloudStoreNetwork() {
               <table className="cloud-network-table cloud-network-action-table">
                 <thead>
                   <tr>
-                    <th>Status</th>
-                    <th>Action</th>
-                    <th>Store</th>
-                    <th>Node</th>
-                    <th>Issued</th>
-                    <th>Ack</th>
-                    <th>Error</th>
-                    <th>Logs</th>
-                    <th>Manage</th>
+                    <th>{tx("Status", "Estado")}</th>
+                    <th>{tx("Action", "Accion")}</th>
+                    <th>{tx("Store", "Tienda")}</th>
+                    <th>{tx("Node", "Nodo")}</th>
+                    <th>{tx("Issued", "Emitido")}</th>
+                    <th>{tx("Ack", "Ack")}</th>
+                    <th>{tx("Error", "Error")}</th>
+                    <th>{tx("Logs", "Logs")}</th>
+                    <th>{tx("Manage", "Gestionar")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1293,7 +1311,7 @@ export default function CloudStoreNetwork() {
                         <strong>{action.store?.name || "-"}</strong>
                         <div className="hint">{action.store?.code || "-"}</div>
                       </td>
-                      <td>{action.node?.label || "All nodes"}</td>
+                      <td>{action.node?.label || tx("All nodes", "Todos los nodos")}</td>
                       <td>{formatDate(action.issuedAt)}</td>
                       <td>{formatDate(action.acknowledgedAt)}</td>
                       <td>{action.errorCode || "-"}</td>
@@ -1307,7 +1325,7 @@ export default function CloudStoreNetwork() {
                               onClick={() => void retryRemoteAction(action.id)}
                               disabled={retryingActionId === action.id}
                             >
-                              {retryingActionId === action.id ? "Retrying..." : "Retry"}
+                              {retryingActionId === action.id ? tx("Retrying...", "Reintentando...") : tx("Retry", "Reintentar")}
                             </button>
                           ) : null}
                           {action.status === "PENDING" ? (
@@ -1317,7 +1335,7 @@ export default function CloudStoreNetwork() {
                               onClick={() => void cancelRemoteAction(action.id)}
                               disabled={cancellingActionId === action.id}
                             >
-                              {cancellingActionId === action.id ? "Cancelling..." : "Cancel"}
+                              {cancellingActionId === action.id ? tx("Cancelling...", "Cancelando...") : tx("Cancel", "Cancelar")}
                             </button>
                           ) : null}
                         </div>
@@ -1328,7 +1346,7 @@ export default function CloudStoreNetwork() {
               </table>
               {remoteActions.length === 0 ? (
                 <p className="hint" style={{ padding: "10px 2px", margin: 0 }}>
-                  No remote actions in this scope.
+                  {tx("No remote actions in this scope.", "No hay acciones remotas en este alcance.")}
                 </p>
               ) : null}
             </div>
@@ -1336,9 +1354,12 @@ export default function CloudStoreNetwork() {
 
           {rotatedNodeToken ? (
             <section className="panel cloud-network-token-panel">
-              <h3>Rotated Node Token</h3>
+              <h3>{tx("Rotated Node Token", "Token de nodo rotado")}</h3>
               <p className="hint">
-                Save this token now. It is shown once and required for secure heartbeat/sync from onsite server.
+                {tx(
+                  "Save this token now. It is shown once and required for secure heartbeat/sync from onsite server.",
+                  "Guarda este token ahora. Se muestra una sola vez y se requiere para latido/sync seguro desde onsite."
+                )}
               </p>
               <div className="cloud-network-token-row">
                 <code>{rotatedNodeToken.nodeKey}</code>
@@ -1346,7 +1367,7 @@ export default function CloudStoreNetwork() {
               </div>
               <div className="cloud-platform-inline-actions">
                 <button type="button" className="terminal-btn primary" onClick={() => void copyRotatedToken()}>
-                  Copy Token
+                  {tx("Copy Token", "Copiar token")}
                 </button>
               </div>
             </section>

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/api";
+import CloudPortalPreferenceControls from "../components/CloudPortalPreferenceControls";
+import { useCloudPortalUi } from "../lib/cloudPortalUi";
 
 type CloudAccountType = "OWNER" | "RESELLER" | "TENANT_ADMIN";
 
@@ -159,16 +161,38 @@ type SavingScope =
 
 type CloudNavSectionKey = "dashboard" | "resellers" | "tenants" | "locations" | "servers" | "analytics";
 
-const CLOUD_NAV_ITEMS: Array<{ key: CloudNavSectionKey; label: string }> = [
-  { key: "dashboard", label: "Dashboard" },
-  { key: "resellers", label: "Resellers" },
-  { key: "tenants", label: "Tenants" },
-  { key: "locations", label: "Locations" },
-  { key: "servers", label: "Servers" },
-  { key: "analytics", label: "Analytics" }
+const CLOUD_NAV_ITEMS: CloudNavSectionKey[] = [
+  "dashboard",
+  "resellers",
+  "tenants",
+  "locations",
+  "servers",
+  "analytics"
 ];
 
 const CLOUD_SESSION_STORAGE_KEY = "pos_cloud_platform_session";
+
+function cloudNavLabel(
+  key: CloudNavSectionKey,
+  tx: (english: string, spanish: string, params?: Record<string, string | number>) => string
+) {
+  switch (key) {
+    case "dashboard":
+      return tx("Dashboard", "Panel");
+    case "resellers":
+      return tx("Resellers", "Revendedores");
+    case "tenants":
+      return tx("Tenants", "Inquilinos");
+    case "locations":
+      return tx("Locations", "Ubicaciones");
+    case "servers":
+      return tx("Servers", "Servidores");
+    case "analytics":
+      return tx("Analytics", "Analitica");
+    default:
+      return key;
+  }
+}
 
 function toErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message.trim()) {
@@ -287,6 +311,7 @@ async function cloudApiFetch<T>(cloudToken: string, path: string, options: Reque
 
 export default function CloudStores() {
   const navigate = useNavigate();
+  const { tx } = useCloudPortalUi();
 
   const [sessionBooting, setSessionBooting] = useState(true);
   const [authLoading, setAuthLoading] = useState(false);
@@ -970,70 +995,81 @@ export default function CloudStores() {
           <span className="cloud-platform-brand-mark" aria-hidden="true">
             ☁
           </span>
-          <strong>Cloud Platform</strong>
+          <strong>{tx("Cloud Platform", "Plataforma Cloud")}</strong>
         </div>
-        <nav className="cloud-platform-nav" aria-label="Cloud navigation">
-          {CLOUD_NAV_ITEMS.map((item) => (
+        <nav className="cloud-platform-nav" aria-label={tx("Cloud navigation", "Navegacion cloud")}>
+          {CLOUD_NAV_ITEMS.map((itemKey) => (
             <button
-              key={item.key}
+              key={itemKey}
               type="button"
-              className={`cloud-platform-nav-item${activeNavSection === item.key ? " active" : ""}`}
+              className={`cloud-platform-nav-item${activeNavSection === itemKey ? " active" : ""}`}
               onClick={() => {
-                setActiveNavSection(item.key);
+                setActiveNavSection(itemKey);
                 if (typeof window !== "undefined") {
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }
               }}
             >
-              {item.label}
+              {cloudNavLabel(itemKey, tx)}
             </button>
           ))}
         </nav>
         <div className="cloud-platform-top-actions">
+          <CloudPortalPreferenceControls />
           <button type="button" className="terminal-btn ghost" onClick={() => navigate("/settings/cloud-sync")}>
-            Sync
+            {tx("Sync", "Sincronizar")}
           </button>
           <button type="button" className="terminal-btn ghost" onClick={() => navigate("/settings/cloud-network")}>
-            Store Network
+            {tx("Store Network", "Red de tiendas")}
           </button>
           <button type="button" className="terminal-btn ghost" onClick={() => navigate("/back-office")}>
-            Back Office
+            {tx("Back Office", "Back Office")}
           </button>
           {cloudAccount ? (
             <button type="button" className="terminal-btn ghost" onClick={logoutCloudAccount}>
-              Sign Out Cloud
+              {tx("Sign Out Cloud", "Cerrar sesion cloud")}
             </button>
           ) : null}
           {cloudAccount ? (
             <button type="button" className="terminal-btn primary" onClick={() => void refreshPlatform()} disabled={loading}>
-              {loading ? "Refreshing..." : "Refresh"}
+              {loading ? tx("Refreshing...", "Actualizando...") : tx("Refresh", "Actualizar")}
             </button>
           ) : null}
-          <div className="cloud-platform-avatar" aria-label="Current user">
+          <div className="cloud-platform-avatar" aria-label={tx("Current user", "Usuario actual")}>
             {(cloudAccount?.displayName || cloudAccount?.email || "CP").slice(0, 2).toUpperCase()}
           </div>
         </div>
       </header>
 
       <section className="panel cloud-platform-title-panel">
-        <h2>Cloud Platform Control Center</h2>
-        <p>Owner to reseller to tenant to multi-location stores, fully scoped by cloud account.</p>
+        <h2>{tx("Cloud Platform Control Center", "Centro de control de plataforma cloud")}</h2>
+        <p>
+          {tx(
+            "Owner to reseller to tenant to multi-location stores, fully scoped by cloud account.",
+            "Owner a revendedor a inquilino a tiendas multiubicacion, totalmente limitado por cuenta cloud."
+          )}
+        </p>
       </section>
 
       {sessionBooting ? (
         <section className="panel cloud-platform-auth">
-          <h3>Loading Cloud Session</h3>
-          <p className="hint">Checking existing cloud credentials...</p>
+          <h3>{tx("Loading Cloud Session", "Cargando sesion cloud")}</h3>
+          <p className="hint">{tx("Checking existing cloud credentials...", "Verificando credenciales cloud...")}</p>
         </section>
       ) : null}
 
       {!sessionBooting && !cloudAccount ? (
         <section className="panel cloud-platform-auth">
-          <h3>Cloud Owner / Reseller Login</h3>
-          <p className="hint">Sign in with a cloud account to manage resellers, tenants, and locations.</p>
+          <h3>{tx("Cloud Owner / Reseller Login", "Login cloud de owner / revendedor")}</h3>
+          <p className="hint">
+            {tx(
+              "Sign in with a cloud account to manage resellers, tenants, and locations.",
+              "Inicia sesion con una cuenta cloud para administrar revendedores, inquilinos y ubicaciones."
+            )}
+          </p>
           <div className="cloud-platform-form-grid" style={{ marginTop: 10 }}>
             <label>
-              Email
+              {tx("Email", "Correo")}
               <input
                 value={loginEmail}
                 onChange={(event) => setLoginEmail(event.target.value)}
@@ -1041,22 +1077,22 @@ export default function CloudStores() {
               />
             </label>
             <label>
-              Password
+              {tx("Password", "Contrasena")}
               <input
                 type="password"
                 value={loginPassword}
                 onChange={(event) => setLoginPassword(event.target.value)}
-                placeholder="Enter password"
+                placeholder={tx("Enter password", "Ingresa contrasena")}
               />
             </label>
           </div>
           <div className="cloud-platform-inline-actions" style={{ marginTop: 12 }}>
             <button type="button" className="terminal-btn primary" onClick={() => void loginCloudAccount()} disabled={authLoading}>
-              {authLoading ? "Signing In..." : "Sign In"}
+              {authLoading ? tx("Signing In...", "Entrando...") : tx("Sign In", "Entrar")}
             </button>
           </div>
           <p className="hint" style={{ marginTop: 10 }}>
-            Seed default owner: <code>owner@websyspos.local</code>
+            {tx("Seed default owner:", "Owner por defecto:")} <code>owner@websyspos.local</code>
           </p>
         </section>
       ) : null}
@@ -1067,34 +1103,49 @@ export default function CloudStores() {
             <section className="panel cloud-platform-span cloud-platform-dashboard">
             <div className="cloud-platform-stat-grid">
               <article className="cloud-platform-stat-card">
-                <p>Total Resellers</p>
+                <p>{tx("Total Resellers", "Total de revendedores")}</p>
                 <strong>{totals.resellers}</strong>
-                <span>{totals.resellers > 0 ? `+${Math.max(1, totals.resellers)} active` : "No resellers yet"}</span>
-              </article>
-              <article className="cloud-platform-stat-card">
-                <p>Total Tenants</p>
-                <strong>{totals.tenants}</strong>
-                <span>{totals.tenants > 0 ? `+${Math.max(1, Math.round(totals.tenants * 0.15))} this month` : "No tenants yet"}</span>
-              </article>
-              <article className="cloud-platform-stat-card">
-                <p>Active Locations</p>
-                <strong>{totals.locationsActive}</strong>
                 <span>
-                  {totals.stores > 0 ? `${totals.stores - totals.locationsActive} inactive` : "No locations yet"}
+                  {totals.resellers > 0
+                    ? tx("+{{value}} active", "+{{value}} activos", { value: Math.max(1, totals.resellers) })
+                    : tx("No resellers yet", "Aun no hay revendedores")}
                 </span>
               </article>
               <article className="cloud-platform-stat-card">
-                <p>Onsite Servers</p>
+                <p>{tx("Total Tenants", "Total de inquilinos")}</p>
+                <strong>{totals.tenants}</strong>
+                <span>
+                  {totals.tenants > 0
+                    ? tx("+{{value}} this month", "+{{value}} este mes", {
+                        value: Math.max(1, Math.round(totals.tenants * 0.15))
+                      })
+                    : tx("No tenants yet", "Aun no hay inquilinos")}
+                </span>
+              </article>
+              <article className="cloud-platform-stat-card">
+                <p>{tx("Active Locations", "Ubicaciones activas")}</p>
+                <strong>{totals.locationsActive}</strong>
+                <span>
+                  {totals.stores > 0
+                    ? tx("{{value}} inactive", "{{value}} inactivas", { value: totals.stores - totals.locationsActive })
+                    : tx("No locations yet", "Aun no hay ubicaciones")}
+                </span>
+              </article>
+              <article className="cloud-platform-stat-card">
+                <p>{tx("Onsite Servers", "Servidores onsite")}</p>
                 <strong>{totalNodes}</strong>
                 <span>
-                  {onlineNodesEstimate} online, {offlineNodesEstimate} offline
+                  {tx("{{online}} online, {{offline}} offline", "{{online}} en linea, {{offline}} fuera de linea", {
+                    online: onlineNodesEstimate,
+                    offline: offlineNodesEstimate
+                  })}
                 </span>
               </article>
             </div>
 
             <div className="cloud-platform-analytics-grid">
               <article className="cloud-platform-analytics-card">
-                <h4>Tenant Growth</h4>
+                <h4>{tx("Tenant Growth", "Crecimiento de inquilinos")}</h4>
                 <div className="cloud-platform-trend-chart">
                   <svg viewBox="0 0 360 140" preserveAspectRatio="none" aria-hidden="true">
                     <defs>
@@ -1119,7 +1170,7 @@ export default function CloudStores() {
               </article>
 
               <article className="cloud-platform-analytics-card cloud-platform-health-card">
-                <h4>Server Health</h4>
+                <h4>{tx("Server Health", "Salud de servidores")}</h4>
                 <div className="cloud-platform-health-row">
                   <div
                     className="cloud-platform-donut"
@@ -1131,17 +1182,17 @@ export default function CloudStores() {
                   </div>
                   <div className="cloud-platform-health-stats">
                     <p>
-                      <i className="dot online" /> Online: {onlineNodesEstimate}
+                      <i className="dot online" /> {tx("Online", "En linea")}: {onlineNodesEstimate}
                     </p>
                     <p>
-                      <i className="dot offline" /> Offline: {offlineNodesEstimate}
+                      <i className="dot offline" /> {tx("Offline", "Fuera de linea")}: {offlineNodesEstimate}
                     </p>
                   </div>
                 </div>
               </article>
 
               <article className="cloud-platform-analytics-card">
-                <h4>Reseller Distribution</h4>
+                <h4>{tx("Reseller Distribution", "Distribucion de revendedores")}</h4>
                 {resellerDistribution.length > 0 ? (
                   <div className="cloud-platform-distribution-list">
                     {resellerDistribution.map((row) => (
@@ -1156,7 +1207,10 @@ export default function CloudStores() {
                   </div>
                 ) : (
                   <p className="hint" style={{ margin: 0 }}>
-                    Distribution appears after reseller tenant data is added.
+                    {tx(
+                      "Distribution appears after reseller tenant data is added.",
+                      "La distribucion aparece despues de agregar datos de inquilinos por revendedor."
+                    )}
                   </p>
                 )}
               </article>
@@ -1165,47 +1219,47 @@ export default function CloudStores() {
           ) : null}
 
           <section className="panel cloud-platform-card">
-            <h3>Current Cloud Scope</h3>
+            <h3>{tx("Current Cloud Scope", "Alcance cloud actual")}</h3>
             <div className="cloud-platform-kpi-grid">
               <article className="cloud-platform-kpi-card">
                 <strong>{cloudAccount.accountType}</strong>
-                <span>Account Type</span>
+                <span>{tx("Account Type", "Tipo de cuenta")}</span>
               </article>
               <article className="cloud-platform-kpi-card">
                 <strong>{totals.resellers}</strong>
-                <span>Resellers</span>
+                <span>{tx("Resellers", "Revendedores")}</span>
               </article>
               <article className="cloud-platform-kpi-card">
                 <strong>{totals.tenants}</strong>
-                <span>Tenants</span>
+                <span>{tx("Tenants", "Inquilinos")}</span>
               </article>
               <article className="cloud-platform-kpi-card">
                 <strong>{totals.locationsActive}</strong>
-                <span>Active Locations</span>
+                <span>{tx("Active Locations", "Ubicaciones activas")}</span>
               </article>
             </div>
 
             <div className="cloud-platform-meta-list">
               <div>
-                <span className="hint">Signed in as</span>
+                <span className="hint">{tx("Signed in as", "Sesion iniciada como")}</span>
                 <strong>{cloudAccount.displayName || cloudAccount.email}</strong>
               </div>
               <div>
-                <span className="hint">Reseller Scope</span>
-                <strong>{cloudAccount.reseller?.name || "All / none"}</strong>
+                <span className="hint">{tx("Reseller Scope", "Alcance de revendedor")}</span>
+                <strong>{cloudAccount.reseller?.name || tx("All / none", "Todos / ninguno")}</strong>
               </div>
               <div>
-                <span className="hint">Tenant Scope</span>
-                <strong>{cloudAccount.tenant?.name || "All / none"}</strong>
+                <span className="hint">{tx("Tenant Scope", "Alcance de inquilino")}</span>
+                <strong>{cloudAccount.tenant?.name || tx("All / none", "Todos / ninguno")}</strong>
               </div>
             </div>
 
             <div className="cloud-platform-filter-row">
               {cloudAccount.accountType === "OWNER" ? (
                 <label>
-                  Filter by Reseller
+                  {tx("Filter by Reseller", "Filtrar por revendedor")}
                   <select value={resellerFilterId} onChange={(event) => setResellerFilterId(event.target.value)}>
-                    <option value="">All Resellers</option>
+                    <option value="">{tx("All Resellers", "Todos los revendedores")}</option>
                     {resellers.map((reseller) => (
                       <option key={reseller.id} value={reseller.id}>
                         {reseller.name} ({reseller.code})
@@ -1216,9 +1270,9 @@ export default function CloudStores() {
               ) : null}
 
               <label>
-                Filter by Tenant
+                {tx("Filter by Tenant", "Filtrar por inquilino")}
                 <select value={tenantFilterId} onChange={(event) => setTenantFilterId(event.target.value)}>
-                  <option value="">All Tenants</option>
+                  <option value="">{tx("All Tenants", "Todos los inquilinos")}</option>
                   {tenants.map((tenant) => (
                     <option key={tenant.id} value={tenant.id}>
                       {tenant.name} ({tenant.slug})
@@ -1231,10 +1285,10 @@ export default function CloudStores() {
 
           {canCreateReseller && showResellerView ? (
             <section className="panel cloud-platform-card">
-              <h3>Create Reseller</h3>
+              <h3>{tx("Create Reseller", "Crear revendedor")}</h3>
               <div className="cloud-platform-form-grid">
                 <label>
-                  Reseller Name
+                  {tx("Reseller Name", "Nombre del revendedor")}
                   <input
                     value={resellerDraft.name}
                     onChange={(event) => setResellerDraft((prev) => ({ ...prev, name: event.target.value }))}
@@ -1242,7 +1296,7 @@ export default function CloudStores() {
                   />
                 </label>
                 <label>
-                  Code (optional)
+                  {tx("Code (optional)", "Codigo (opcional)")}
                   <input
                     value={resellerDraft.code}
                     onChange={(event) => setResellerDraft((prev) => ({ ...prev, code: event.target.value }))}
@@ -1250,7 +1304,7 @@ export default function CloudStores() {
                   />
                 </label>
                 <label>
-                  Contact Name
+                  {tx("Contact Name", "Nombre de contacto")}
                   <input
                     value={resellerDraft.contactName}
                     onChange={(event) => setResellerDraft((prev) => ({ ...prev, contactName: event.target.value }))}
@@ -1258,7 +1312,7 @@ export default function CloudStores() {
                   />
                 </label>
                 <label>
-                  Contact Email
+                  {tx("Contact Email", "Correo de contacto")}
                   <input
                     value={resellerDraft.contactEmail}
                     onChange={(event) => setResellerDraft((prev) => ({ ...prev, contactEmail: event.target.value }))}
@@ -1266,7 +1320,7 @@ export default function CloudStores() {
                   />
                 </label>
                 <label>
-                  Contact Phone
+                  {tx("Contact Phone", "Telefono de contacto")}
                   <input
                     value={resellerDraft.contactPhone}
                     onChange={(event) => setResellerDraft((prev) => ({ ...prev, contactPhone: event.target.value }))}
@@ -1276,11 +1330,11 @@ export default function CloudStores() {
               </div>
 
               <p className="hint" style={{ marginTop: 10, marginBottom: 6 }}>
-                Optional: create reseller admin login now
+                {tx("Optional: create reseller admin login now", "Opcional: crear login admin del revendedor ahora")}
               </p>
               <div className="cloud-platform-form-grid">
                 <label>
-                  Admin Email
+                  {tx("Admin Email", "Correo admin")}
                   <input
                     value={resellerDraft.adminEmail}
                     onChange={(event) => setResellerDraft((prev) => ({ ...prev, adminEmail: event.target.value }))}
@@ -1288,16 +1342,16 @@ export default function CloudStores() {
                   />
                 </label>
                 <label>
-                  Admin Password
+                  {tx("Admin Password", "Contrasena admin")}
                   <input
                     type="password"
                     value={resellerDraft.adminPassword}
                     onChange={(event) => setResellerDraft((prev) => ({ ...prev, adminPassword: event.target.value }))}
-                    placeholder="Minimum 8 characters"
+                    placeholder={tx("Minimum 8 characters", "Minimo 8 caracteres")}
                   />
                 </label>
                 <label>
-                  Admin Display Name
+                  {tx("Admin Display Name", "Nombre visible admin")}
                   <input
                     value={resellerDraft.adminDisplayName}
                     onChange={(event) =>
@@ -1315,7 +1369,9 @@ export default function CloudStores() {
                   onClick={() => void createReseller()}
                   disabled={savingScope === "reseller"}
                 >
-                  {savingScope === "reseller" ? "Creating..." : "Create Reseller"}
+                  {savingScope === "reseller"
+                    ? tx("Creating...", "Creando...")
+                    : tx("Create Reseller", "Crear revendedor")}
                 </button>
               </div>
             </section>
@@ -1323,16 +1379,16 @@ export default function CloudStores() {
 
           {canCreateTenant && showTenantView ? (
             <section className="panel cloud-platform-card">
-              <h3>Create Tenant</h3>
+              <h3>{tx("Create Tenant", "Crear inquilino")}</h3>
               <div className="cloud-platform-form-grid">
                 {cloudAccount?.accountType === "OWNER" ? (
                   <label>
-                    Reseller
+                    {tx("Reseller", "Revendedor")}
                     <select
                       value={tenantDraft.resellerId}
                       onChange={(event) => setTenantDraft((prev) => ({ ...prev, resellerId: event.target.value }))}
                     >
-                      <option value="">Select reseller</option>
+                      <option value="">{tx("Select reseller", "Selecciona revendedor")}</option>
                       {resellers.map((reseller) => (
                         <option key={reseller.id} value={reseller.id}>
                           {reseller.name} ({reseller.code})
@@ -1343,7 +1399,7 @@ export default function CloudStores() {
                 ) : null}
 
                 <label>
-                  Tenant Name
+                  {tx("Tenant Name", "Nombre del inquilino")}
                   <input
                     value={tenantDraft.name}
                     onChange={(event) => setTenantDraft((prev) => ({ ...prev, name: event.target.value }))}
@@ -1352,7 +1408,7 @@ export default function CloudStores() {
                 </label>
 
                 <label>
-                  Slug (optional)
+                  {tx("Slug (optional)", "Slug (opcional)")}
                   <input
                     value={tenantDraft.slug}
                     onChange={(event) => setTenantDraft((prev) => ({ ...prev, slug: event.target.value }))}
@@ -1362,11 +1418,11 @@ export default function CloudStores() {
               </div>
 
               <p className="hint" style={{ marginTop: 10, marginBottom: 6 }}>
-                Optional: create tenant admin login now
+                {tx("Optional: create tenant admin login now", "Opcional: crear login admin del inquilino ahora")}
               </p>
               <div className="cloud-platform-form-grid">
                 <label>
-                  Admin Email
+                  {tx("Admin Email", "Correo admin")}
                   <input
                     value={tenantDraft.adminEmail}
                     onChange={(event) => setTenantDraft((prev) => ({ ...prev, adminEmail: event.target.value }))}
@@ -1374,16 +1430,16 @@ export default function CloudStores() {
                   />
                 </label>
                 <label>
-                  Admin Password
+                  {tx("Admin Password", "Contrasena admin")}
                   <input
                     type="password"
                     value={tenantDraft.adminPassword}
                     onChange={(event) => setTenantDraft((prev) => ({ ...prev, adminPassword: event.target.value }))}
-                    placeholder="Minimum 8 characters"
+                    placeholder={tx("Minimum 8 characters", "Minimo 8 caracteres")}
                   />
                 </label>
                 <label>
-                  Admin Display Name
+                  {tx("Admin Display Name", "Nombre visible admin")}
                   <input
                     value={tenantDraft.adminDisplayName}
                     onChange={(event) => setTenantDraft((prev) => ({ ...prev, adminDisplayName: event.target.value }))}
@@ -1399,7 +1455,7 @@ export default function CloudStores() {
                   onClick={() => void createTenant()}
                   disabled={savingScope === "tenant"}
                 >
-                  {savingScope === "tenant" ? "Creating..." : "Create Tenant"}
+                  {savingScope === "tenant" ? tx("Creating...", "Creando...") : tx("Create Tenant", "Crear inquilino")}
                 </button>
               </div>
               {tenantFormError ? <p className="cloud-platform-alert cloud-platform-alert-error cloud-platform-inline-alert">{tenantFormError}</p> : null}
@@ -1411,15 +1467,15 @@ export default function CloudStores() {
 
           {showLocationView ? (
             <section className="panel cloud-platform-card">
-            <h3>Create Location (Store)</h3>
+            <h3>{tx("Create Location (Store)", "Crear ubicacion (tienda)")}</h3>
             <div className="cloud-platform-form-grid">
               <label>
-                Tenant
+                {tx("Tenant", "Inquilino")}
                 <select
                   value={storeDraft.tenantId}
                   onChange={(event) => setStoreDraft((prev) => ({ ...prev, tenantId: event.target.value }))}
                 >
-                  <option value="">Select tenant</option>
+                  <option value="">{tx("Select tenant", "Selecciona inquilino")}</option>
                   {tenants.map((tenant) => (
                     <option key={tenant.id} value={tenant.id}>
                       {tenant.name} ({tenant.slug})
@@ -1429,7 +1485,7 @@ export default function CloudStores() {
               </label>
 
               <label>
-                Location Name
+                {tx("Location Name", "Nombre de ubicacion")}
                 <input
                   value={storeDraft.name}
                   onChange={(event) => setStoreDraft((prev) => ({ ...prev, name: event.target.value }))}
@@ -1438,7 +1494,7 @@ export default function CloudStores() {
               </label>
 
               <label>
-                Location Code (optional)
+                {tx("Location Code (optional)", "Codigo de ubicacion (opcional)")}
                 <input
                   value={storeDraft.code}
                   onChange={(event) => setStoreDraft((prev) => ({ ...prev, code: event.target.value }))}
@@ -1447,7 +1503,7 @@ export default function CloudStores() {
               </label>
 
               <label>
-                Timezone
+                {tx("Timezone", "Zona horaria")}
                 <input
                   value={storeDraft.timezone}
                   onChange={(event) => setStoreDraft((prev) => ({ ...prev, timezone: event.target.value }))}
@@ -1456,7 +1512,7 @@ export default function CloudStores() {
               </label>
 
               <label>
-                Edge Base URL (optional)
+                {tx("Edge Base URL (optional)", "URL base edge (opcional)")}
                 <input
                   value={storeDraft.edgeBaseUrl}
                   onChange={(event) => setStoreDraft((prev) => ({ ...prev, edgeBaseUrl: event.target.value }))}
@@ -1472,7 +1528,7 @@ export default function CloudStores() {
                 onClick={() => void createStore()}
                 disabled={savingScope === "store"}
               >
-                {savingScope === "store" ? "Creating..." : "Create Location"}
+                {savingScope === "store" ? tx("Creating...", "Creando...") : tx("Create Location", "Crear ubicacion")}
               </button>
             </div>
             </section>
@@ -1480,13 +1536,16 @@ export default function CloudStores() {
 
           {showServerView ? (
             <section className="panel cloud-platform-card">
-            <h3>Claim Onsite Server</h3>
+            <h3>{tx("Claim Onsite Server", "Registrar servidor onsite")}</h3>
             <p className="hint" style={{ marginTop: 0 }}>
-              Use the onsite server claim id + claim code to register that local server and auto-create its cloud location.
+              {tx(
+                "Use the onsite server claim id + claim code to register that local server and auto-create its cloud location.",
+                "Usa el claim id + claim code del servidor onsite para registrarlo y crear su ubicacion cloud automaticamente."
+              )}
             </p>
             <div className="cloud-platform-form-grid">
               <label>
-                Onsite Server URL
+                {tx("Onsite Server URL", "URL del servidor onsite")}
                 <input
                   value={onsiteClaimDraft.onsiteBaseUrl}
                   onChange={(event) =>
@@ -1496,7 +1555,7 @@ export default function CloudStores() {
                 />
               </label>
               <label>
-                Claim ID
+                {tx("Claim ID", "ID de claim")}
                 <input
                   value={onsiteClaimDraft.claimId}
                   onChange={(event) => setOnsiteClaimDraft((prev) => ({ ...prev, claimId: event.target.value }))}
@@ -1504,7 +1563,7 @@ export default function CloudStores() {
                 />
               </label>
               <label>
-                Claim Code
+                {tx("Claim Code", "Codigo de claim")}
                 <input
                   value={onsiteClaimDraft.claimCode}
                   onChange={(event) => setOnsiteClaimDraft((prev) => ({ ...prev, claimCode: event.target.value }))}
@@ -1512,12 +1571,12 @@ export default function CloudStores() {
                 />
               </label>
               <label>
-                Tenant
+                {tx("Tenant", "Inquilino")}
                 <select
                   value={onsiteClaimDraft.tenantId}
                   onChange={(event) => setOnsiteClaimDraft((prev) => ({ ...prev, tenantId: event.target.value }))}
                 >
-                  <option value="">Select tenant</option>
+                  <option value="">{tx("Select tenant", "Selecciona inquilino")}</option>
                   {tenants.map((tenant) => (
                     <option key={tenant.id} value={tenant.id}>
                       {tenant.name} ({tenant.slug})
@@ -1526,7 +1585,7 @@ export default function CloudStores() {
                 </select>
               </label>
               <label>
-                Location Name Override (optional)
+                {tx("Location Name Override (optional)", "Reemplazo de nombre de ubicacion (opcional)")}
                 <input
                   value={onsiteClaimDraft.storeName}
                   onChange={(event) => setOnsiteClaimDraft((prev) => ({ ...prev, storeName: event.target.value }))}
@@ -1534,7 +1593,7 @@ export default function CloudStores() {
                 />
               </label>
               <label>
-                Location Code Override (optional)
+                {tx("Location Code Override (optional)", "Reemplazo de codigo de ubicacion (opcional)")}
                 <input
                   value={onsiteClaimDraft.storeCode}
                   onChange={(event) => setOnsiteClaimDraft((prev) => ({ ...prev, storeCode: event.target.value }))}
@@ -1542,7 +1601,7 @@ export default function CloudStores() {
                 />
               </label>
               <label>
-                Timezone
+                {tx("Timezone", "Zona horaria")}
                 <input
                   value={onsiteClaimDraft.timezone}
                   onChange={(event) => setOnsiteClaimDraft((prev) => ({ ...prev, timezone: event.target.value }))}
@@ -1550,15 +1609,15 @@ export default function CloudStores() {
                 />
               </label>
               <label>
-                Edge Base URL (optional)
+                {tx("Edge Base URL (optional)", "URL base edge (opcional)")}
                 <input
                   value={onsiteClaimDraft.edgeBaseUrl}
                   onChange={(event) => setOnsiteClaimDraft((prev) => ({ ...prev, edgeBaseUrl: event.target.value }))}
-                  placeholder="defaults to onsite URL"
+                  placeholder={tx("defaults to onsite URL", "usa URL onsite por defecto")}
                 />
               </label>
               <label>
-                Node Label
+                {tx("Node Label", "Etiqueta del nodo")}
                 <input
                   value={onsiteClaimDraft.nodeLabel}
                   onChange={(event) => setOnsiteClaimDraft((prev) => ({ ...prev, nodeLabel: event.target.value }))}
@@ -1574,29 +1633,31 @@ export default function CloudStores() {
                 onClick={() => void claimOnsiteServer()}
                 disabled={savingScope === "onsite-claim"}
               >
-                {savingScope === "onsite-claim" ? "Claiming..." : "Claim Server + Create Location"}
+                {savingScope === "onsite-claim"
+                  ? tx("Claiming...", "Registrando...")
+                  : tx("Claim Server + Create Location", "Registrar servidor + crear ubicacion")}
               </button>
             </div>
 
             {onsiteClaimResult?.store ? (
               <div className="cloud-platform-meta-list">
                 <div>
-                  <span className="hint">Cloud Store</span>
+                  <span className="hint">{tx("Cloud Store", "Tienda cloud")}</span>
                   <strong>
                     {onsiteClaimResult.store.name} ({onsiteClaimResult.store.code})
                   </strong>
                 </div>
                 <div>
-                  <span className="hint">Node Key</span>
+                  <span className="hint">{tx("Node Key", "Clave de nodo")}</span>
                   <strong>{onsiteClaimResult.node?.nodeKey || "-"}</strong>
                 </div>
                 <div>
-                  <span className="hint">Onsite UID</span>
+                  <span className="hint">{tx("Onsite UID", "UID onsite")}</span>
                   <strong>{onsiteClaimResult.onsite?.serverUid || "-"}</strong>
                 </div>
                 {onsiteClaimResult.onsite?.finalizeError ? (
                   <div>
-                    <span className="hint">Finalize Warning</span>
+                    <span className="hint">{tx("Finalize Warning", "Advertencia de finalizacion")}</span>
                     <strong>{onsiteClaimResult.onsite.finalizeError}</strong>
                   </div>
                 ) : null}
@@ -1607,18 +1668,18 @@ export default function CloudStores() {
 
           {canCreateResellerAccount && showResellerView ? (
             <section className="panel cloud-platform-card">
-              <h3>Create Reseller Login</h3>
+              <h3>{tx("Create Reseller Login", "Crear login de revendedor")}</h3>
               <div className="cloud-platform-form-grid">
                 {cloudAccount?.accountType === "OWNER" ? (
                   <label>
-                    Reseller
+                    {tx("Reseller", "Revendedor")}
                     <select
                       value={resellerAccountDraft.resellerId}
                       onChange={(event) =>
                         setResellerAccountDraft((prev) => ({ ...prev, resellerId: event.target.value }))
                       }
                     >
-                      <option value="">Select reseller</option>
+                      <option value="">{tx("Select reseller", "Selecciona revendedor")}</option>
                       {resellers.map((reseller) => (
                         <option key={reseller.id} value={reseller.id}>
                           {reseller.name} ({reseller.code})
@@ -1629,7 +1690,7 @@ export default function CloudStores() {
                 ) : null}
 
                 <label>
-                  Login Email
+                  {tx("Login Email", "Correo de login")}
                   <input
                     value={resellerAccountDraft.email}
                     onChange={(event) => setResellerAccountDraft((prev) => ({ ...prev, email: event.target.value }))}
@@ -1637,18 +1698,18 @@ export default function CloudStores() {
                   />
                 </label>
                 <label>
-                  Password
+                  {tx("Password", "Contrasena")}
                   <input
                     type="password"
                     value={resellerAccountDraft.password}
                     onChange={(event) =>
                       setResellerAccountDraft((prev) => ({ ...prev, password: event.target.value }))
                     }
-                    placeholder="Minimum 8 characters"
+                    placeholder={tx("Minimum 8 characters", "Minimo 8 caracteres")}
                   />
                 </label>
                 <label>
-                  Display Name
+                  {tx("Display Name", "Nombre visible")}
                   <input
                     value={resellerAccountDraft.displayName}
                     onChange={(event) =>
@@ -1665,7 +1726,9 @@ export default function CloudStores() {
                   onClick={() => void createResellerAccount()}
                   disabled={savingScope === "reseller-account"}
                 >
-                  {savingScope === "reseller-account" ? "Creating..." : "Create Reseller Login"}
+                  {savingScope === "reseller-account"
+                    ? tx("Creating...", "Creando...")
+                    : tx("Create Reseller Login", "Crear login de revendedor")}
                 </button>
               </div>
             </section>
@@ -1673,15 +1736,15 @@ export default function CloudStores() {
 
           {showTenantView ? (
             <section className="panel cloud-platform-card">
-            <h3>Create Tenant Login</h3>
+            <h3>{tx("Create Tenant Login", "Crear login de inquilino")}</h3>
             <div className="cloud-platform-form-grid">
               <label>
-                Tenant
+                {tx("Tenant", "Inquilino")}
                 <select
                   value={tenantAccountDraft.tenantId}
                   onChange={(event) => setTenantAccountDraft((prev) => ({ ...prev, tenantId: event.target.value }))}
                 >
-                  <option value="">Select tenant</option>
+                  <option value="">{tx("Select tenant", "Selecciona inquilino")}</option>
                   {tenants.map((tenant) => (
                     <option key={tenant.id} value={tenant.id}>
                       {tenant.name} ({tenant.slug})
@@ -1691,7 +1754,7 @@ export default function CloudStores() {
               </label>
 
               <label>
-                Login Email
+                {tx("Login Email", "Correo de login")}
                 <input
                   value={tenantAccountDraft.email}
                   onChange={(event) => setTenantAccountDraft((prev) => ({ ...prev, email: event.target.value }))}
@@ -1700,17 +1763,17 @@ export default function CloudStores() {
               </label>
 
               <label>
-                Password
+                {tx("Password", "Contrasena")}
                 <input
                   type="password"
                   value={tenantAccountDraft.password}
                   onChange={(event) => setTenantAccountDraft((prev) => ({ ...prev, password: event.target.value }))}
-                  placeholder="Minimum 8 characters"
+                  placeholder={tx("Minimum 8 characters", "Minimo 8 caracteres")}
                 />
               </label>
 
               <label>
-                Display Name
+                {tx("Display Name", "Nombre visible")}
                 <input
                   value={tenantAccountDraft.displayName}
                   onChange={(event) => setTenantAccountDraft((prev) => ({ ...prev, displayName: event.target.value }))}
@@ -1725,7 +1788,9 @@ export default function CloudStores() {
                 onClick={() => void createTenantAccount()}
                 disabled={savingScope === "tenant-account"}
               >
-                {savingScope === "tenant-account" ? "Creating..." : "Create Tenant Login"}
+                {savingScope === "tenant-account"
+                  ? tx("Creating...", "Creando...")
+                  : tx("Create Tenant Login", "Crear login de inquilino")}
               </button>
             </div>
             </section>
@@ -1733,20 +1798,20 @@ export default function CloudStores() {
 
           {showHierarchySection ? (
             <section className="panel cloud-platform-card cloud-platform-span">
-            <h3>Hierarchy Data</h3>
+            <h3>{tx("Hierarchy Data", "Datos de jerarquia")}</h3>
 
             {showResellerTable && cloudAccount.accountType !== "TENANT_ADMIN" ? (
               <div className="cloud-platform-table-block">
-                <h4>Resellers</h4>
+                <h4>{tx("Resellers", "Revendedores")}</h4>
                 <div className="cloud-platform-table-wrap">
                   <table className="cloud-platform-table">
                     <thead>
                       <tr>
-                        <th>Name</th>
-                        <th>Code</th>
-                        <th>Tenants</th>
-                        <th>Accounts</th>
-                        <th>Updated</th>
+                        <th>{tx("Name", "Nombre")}</th>
+                        <th>{tx("Code", "Codigo")}</th>
+                        <th>{tx("Tenants", "Inquilinos")}</th>
+                        <th>{tx("Accounts", "Cuentas")}</th>
+                        <th>{tx("Updated", "Actualizado")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1761,23 +1826,23 @@ export default function CloudStores() {
                       ))}
                     </tbody>
                   </table>
-                  {resellers.length === 0 ? <p className="hint">No resellers in this scope.</p> : null}
+                  {resellers.length === 0 ? <p className="hint">{tx("No resellers in this scope.", "No hay revendedores en este alcance.")}</p> : null}
                 </div>
               </div>
             ) : null}
 
             {showTenantTable ? (
               <div className="cloud-platform-table-block">
-              <h4>Tenants</h4>
+              <h4>{tx("Tenants", "Inquilinos")}</h4>
               <div className="cloud-platform-table-wrap">
                 <table className="cloud-platform-table">
                   <thead>
                     <tr>
-                      <th>Tenant</th>
-                      <th>Reseller</th>
-                      <th>Stores</th>
-                      <th>Accounts</th>
-                      <th>Updated</th>
+                      <th>{tx("Tenant", "Inquilino")}</th>
+                      <th>{tx("Reseller", "Revendedor")}</th>
+                      <th>{tx("Stores", "Tiendas")}</th>
+                      <th>{tx("Accounts", "Cuentas")}</th>
+                      <th>{tx("Updated", "Actualizado")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1795,25 +1860,25 @@ export default function CloudStores() {
                     ))}
                   </tbody>
                 </table>
-                {tenants.length === 0 ? <p className="hint">No tenants in this scope.</p> : null}
+                {tenants.length === 0 ? <p className="hint">{tx("No tenants in this scope.", "No hay inquilinos en este alcance.")}</p> : null}
               </div>
               </div>
             ) : null}
 
             {showLocationTable ? (
               <div className="cloud-platform-table-block">
-              <h4>Locations</h4>
+              <h4>{tx("Locations", "Ubicaciones")}</h4>
               <div className="cloud-platform-table-wrap">
                 <table className="cloud-platform-table">
                   <thead>
                     <tr>
-                      <th>Location</th>
-                      <th>Tenant</th>
-                      <th>Status</th>
-                      <th>Nodes</th>
-                      <th>Revisions</th>
-                      <th>Updated</th>
-                      <th>Actions</th>
+                      <th>{tx("Location", "Ubicacion")}</th>
+                      <th>{tx("Tenant", "Inquilino")}</th>
+                      <th>{tx("Status", "Estado")}</th>
+                      <th>{tx("Nodes", "Nodos")}</th>
+                      <th>{tx("Revisions", "Revisiones")}</th>
+                      <th>{tx("Updated", "Actualizado")}</th>
+                      <th>{tx("Actions", "Acciones")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1835,14 +1900,14 @@ export default function CloudStores() {
                             disabled={!cloudToken || !resolveBackOfficeBaseUrl(store.edgeBaseUrl || "")}
                             onClick={() => void openCustomerBackOffice(store)}
                           >
-                            Open Customer Back Office
+                            {tx("Open Customer Back Office", "Abrir Back Office del cliente")}
                           </button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                {stores.length === 0 ? <p className="hint">No locations in this scope.</p> : null}
+                {stores.length === 0 ? <p className="hint">{tx("No locations in this scope.", "No hay ubicaciones en este alcance.")}</p> : null}
               </div>
               </div>
             ) : null}
