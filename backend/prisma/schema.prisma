@@ -1,0 +1,909 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id                   String   @id @default(cuid())
+  name                 String   @unique
+  permissions          Json     @default("{}")
+  securityLevel        Int      @default(3)
+  legacySecurityConfig Json?
+  legacyId             Int?
+  legacySource         String?
+  users                User[]
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("roles")
+}
+
+model User {
+  id                      String               @id @default(cuid())
+  username                String               @unique
+  passwordHash            String
+  pinHash                 String?
+  displayName             String?
+  language                String               @default("en")
+  active                  Boolean              @default(true)
+  legacyId                Int?
+  legacySource            String?
+  roleId                  String
+  role                    Role                 @relation(fields: [roleId], references: [id])
+  permissionOverrides     Json?
+  securityLevel           Int?
+  legacySecurityOverrides Json?
+  shifts                  Shift[]
+  timeClocks              TimeClock[]
+  cashTransactions        CashTransaction[]
+  servedOrders            PosOrder[]           @relation("OrderServer")
+  createdReservations     Reservation[]        @relation("ReservationCreatedBy")
+  notifications           UserNotification[]
+  kitchenTicketEvents     KitchenTicketEvent[]
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+
+  @@map("users")
+}
+
+model MenuCategory {
+  id           String      @id @default(cuid())
+  name         String
+  sortOrder    Int         @default(0)
+  color        String?
+  visible      Boolean     @default(true)
+  legacyId     Int?
+  legacySource String?
+  groups       MenuGroup[]
+  items        MenuItem[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@map("menu_categories")
+}
+
+model MenuGroup {
+  id               String          @id @default(cuid())
+  name             String
+  sortOrder        Int             @default(0)
+  visible          Boolean         @default(true)
+  categoryId       String
+  category         MenuCategory    @relation(fields: [categoryId], references: [id])
+  kitchenStationId String?
+  kitchenStation   KitchenStation? @relation(fields: [kitchenStationId], references: [id])
+  items            MenuItem[]
+  legacyId         Int?
+  legacySource     String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@map("menu_groups")
+}
+
+model MenuItem {
+  id               String                  @id @default(cuid())
+  name             String
+  description      String?
+  sku              String?
+  barcode          String?
+  color            String?
+  price            Decimal                 @db.Decimal(12, 2)
+  cost             Decimal?                @db.Decimal(12, 2)
+  taxable          Boolean                 @default(true)
+  visible          Boolean                 @default(true)
+  legacyId         Int?
+  legacyGroupId    Int?
+  legacyCategoryId Int?
+  legacyPayload    Json?
+  categoryId       String?
+  category         MenuCategory?           @relation(fields: [categoryId], references: [id])
+  groupId          String?
+  group            MenuGroup?              @relation(fields: [groupId], references: [id])
+  taxId            String?
+  tax              Tax?                    @relation(fields: [taxId], references: [id])
+  kitchenStationId String?
+  kitchenStation   KitchenStation?         @relation(fields: [kitchenStationId], references: [id])
+  prices           MenuItemPrice[]
+  modifierGroups   MenuItemModifierGroup[]
+  availability     MenuItemAvailability[]
+  ingredients      MenuItemIngredient[]
+  orderItems       PosOrderItem[]
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  @@map("menu_items")
+}
+
+model MenuItemAvailability {
+  id         String   @id @default(cuid())
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  dayOfWeek  Int // 0-6 (Sunday-Saturday)
+  startTime  String // HH:mm
+  endTime    String // HH:mm
+  enabled    Boolean  @default(true)
+
+  @@map("menu_item_availability")
+}
+
+model MenuModifierGroup {
+  id           String                  @id @default(cuid())
+  name         String
+  minRequired  Int?
+  maxAllowed   Int?
+  sortOrder    Int                     @default(0)
+  active       Boolean                 @default(true)
+  legacyId     Int?
+  legacySource String?
+  modifiers    MenuModifier[]
+  menuItems    MenuItemModifierGroup[]
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  @@map("menu_modifier_groups")
+}
+
+model MenuModifier {
+  id                 String              @id @default(cuid())
+  name               String
+  price              Decimal             @db.Decimal(12, 2)
+  sortOrder          Int                 @default(0)
+  active             Boolean             @default(true)
+  groupId            String
+  group              MenuModifierGroup   @relation(fields: [groupId], references: [id])
+  legacyId           Int?
+  legacySource       String?
+  orderItemModifiers OrderItemModifier[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@map("menu_modifiers")
+}
+
+model MenuItemModifierGroup {
+  id          String            @id @default(cuid())
+  menuItemId  String
+  menuItem    MenuItem          @relation(fields: [menuItemId], references: [id])
+  groupId     String
+  group       MenuModifierGroup @relation(fields: [groupId], references: [id])
+  minRequired Int?
+  maxAllowed  Int?
+  sortOrder   Int               @default(0)
+
+  @@map("menu_item_modifier_groups")
+}
+
+model Discount {
+  id           String          @id @default(cuid())
+  name         String
+  type         String // PERCENT or FIXED
+  value        Decimal         @db.Decimal(12, 2)
+  active       Boolean         @default(true)
+  autoApply    Boolean         @default(false)
+  legacyId     Int?
+  legacySource String?
+  orders       OrderDiscount[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@map("discounts")
+}
+
+model Tax {
+  id           String     @id @default(cuid())
+  name         String
+  rate         Decimal    @db.Decimal(6, 4)
+  inclusive    Boolean    @default(false)
+  active       Boolean    @default(true)
+  legacyId     Int?
+  legacySource String?
+  menuItems    MenuItem[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("taxes")
+}
+
+model DiningTable {
+  id           String        @id @default(cuid())
+  name         String
+  area         String?
+  areaId       String?
+  tableArea    TableArea?    @relation(fields: [areaId], references: [id])
+  capacity     Int?
+  status       String        @default("AVAILABLE")
+  posX         Int?
+  posY         Int?
+  shape        String?
+  legacyId     Int?
+  legacySource String?
+  orders       PosOrder[]
+  reservations Reservation[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("tables")
+}
+
+model TableArea {
+  id        String        @id @default(cuid())
+  name      String
+  sortOrder Int           @default(0)
+  tables    DiningTable[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@map("table_areas")
+}
+
+model Reservation {
+  id                      String             @id @default(cuid())
+  guestName               String
+  phone                   String?
+  partySize               Int                @default(2)
+  reservationAt           DateTime
+  notes                   String?
+  status                  String             @default("BOOKED") // BOOKED, CONFIRMED, CHECKED_IN, SEATED, CANCELLED, NO_SHOW, COMPLETED
+  source                  String             @default("ADVANCE") // SAME_DAY, ADVANCE
+  tableId                 String?
+  table                   DiningTable?       @relation(fields: [tableId], references: [id])
+  createdById             String?
+  createdBy               User?              @relation("ReservationCreatedBy", fields: [createdById], references: [id])
+  reminderTwoDaySentAt    DateTime?
+  reminderTenMinuteSentAt DateTime?
+  notifications           UserNotification[]
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+
+  @@index([reservationAt])
+  @@index([status])
+  @@index([tableId])
+  @@map("reservations")
+}
+
+model UserNotification {
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id])
+  reservationId String?
+  reservation   Reservation? @relation(fields: [reservationId], references: [id])
+  type          String
+  title         String
+  message       String
+  dedupeKey     String       @unique
+  readAt        DateTime?
+  createdAt     DateTime     @default(now())
+
+  @@index([userId, readAt])
+  @@index([reservationId])
+  @@index([createdAt])
+  @@map("user_notifications")
+}
+
+model PosOrder {
+  id               String            @id @default(cuid())
+  tableId          String?
+  table            DiningTable?      @relation(fields: [tableId], references: [id])
+  serverId         String?
+  server           User?             @relation("OrderServer", fields: [serverId], references: [id])
+  status           String            @default("OPEN")
+  orderType        String            @default("DINE_IN")
+  orderNumber      Int?              @unique
+  ticketNumber     Int?
+  ticketDate       String?
+  customerName     String?
+  notes            String?
+  holdReason       String?
+  createdAtLegacy  DateTime?
+  closedAtLegacy   DateTime?
+  activeAtLegacy   DateTime?
+  deliveryAtLegacy DateTime?
+  paid             Boolean?
+  voided           Boolean?
+  voidReason       String?
+  subtotalAmount   Decimal?          @db.Decimal(12, 2)
+  discountAmount   Decimal?          @db.Decimal(12, 2)
+  taxAmount        Decimal?          @db.Decimal(12, 2)
+  totalAmount      Decimal?          @db.Decimal(12, 2)
+  paidAmount       Decimal?          @db.Decimal(12, 2)
+  dueAmount        Decimal?          @db.Decimal(12, 2)
+  advanceAmount    Decimal?          @db.Decimal(12, 2)
+  adjustmentAmount Decimal?          @db.Decimal(12, 2)
+  numberOfGuests   Int?
+  barTab           Boolean?
+  taxExempt        Boolean?
+  reOpened         Boolean?
+  serviceCharge    Decimal?          @db.Decimal(12, 2)
+  deliveryCharge   Decimal?          @db.Decimal(12, 2)
+  ticketType       String?
+  legacyId         Int?
+  legacySource     String?
+  legacyPayload    Json?
+  items            PosOrderItem[]
+  payments         Payment[]
+  discounts        OrderDiscount[]
+  kitchenTickets   KitchenTicket[]
+  integrationOrder IntegrationOrder?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@unique([ticketDate, ticketNumber])
+  @@index([serverId])
+  @@map("orders")
+}
+
+model IntegrationProvider {
+  id        String             @id @default(cuid())
+  code      String             @unique
+  name      String
+  enabled   Boolean            @default(false)
+  settings  Json?
+  stores    IntegrationStore[]
+  orders    IntegrationOrder[]
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@map("integration_providers")
+}
+
+model IntegrationStore {
+  id                 String              @id @default(cuid())
+  providerId         String
+  provider           IntegrationProvider @relation(fields: [providerId], references: [id])
+  name               String
+  merchantSuppliedId String
+  providerStoreId    String?
+  active             Boolean             @default(true)
+  settings           Json?
+  orders             IntegrationOrder[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@unique([providerId, merchantSuppliedId])
+  @@map("integration_stores")
+}
+
+model Tenant {
+  id          String         @id @default(cuid())
+  name        String
+  slug        String         @unique
+  active      Boolean        @default(true)
+  resellerId  String?
+  reseller    Reseller?      @relation(fields: [resellerId], references: [id])
+  metadata    Json?
+  stores      Store[]
+  accounts    CloudAccount[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([resellerId])
+  @@map("tenants")
+}
+
+model Reseller {
+  id           String         @id @default(cuid())
+  name         String
+  code         String         @unique
+  active       Boolean        @default(true)
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+  metadata     Json?
+  tenants      Tenant[]
+  accounts     CloudAccount[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([active])
+  @@map("resellers")
+}
+
+model CloudAccount {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  passwordHash String
+  displayName String?
+  accountType String
+  status      String    @default("ACTIVE")
+  resellerId  String?
+  reseller    Reseller? @relation(fields: [resellerId], references: [id])
+  tenantId    String?
+  tenant      Tenant?   @relation(fields: [tenantId], references: [id])
+  metadata    Json?
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([accountType, status])
+  @@index([resellerId])
+  @@index([tenantId])
+  @@map("cloud_accounts")
+}
+
+model Store {
+  id              String                    @id @default(cuid())
+  tenantId        String
+  tenant          Tenant                    @relation(fields: [tenantId], references: [id])
+  name            String
+  code            String                    @unique
+  timezone        String                    @default("America/Chicago")
+  status          String                    @default("ACTIVE")
+  edgeBaseUrl     String?
+  metadata        Json?
+  nodes           StoreNode[]
+  bootstrapTokens StoreNodeBootstrapToken[]
+  revisions       SyncRevision[]
+  commands        SyncCommand[]
+  commandLogs     SyncCommandLog[]
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("stores")
+}
+
+model StoreNode {
+  id              String           @id @default(cuid())
+  storeId         String
+  store           Store            @relation(fields: [storeId], references: [id])
+  label           String
+  nodeKey         String           @unique
+  tokenHash       String
+  status          String           @default("OFFLINE")
+  softwareVersion String?
+  metadata        Json?
+  lastSeenAt      DateTime?
+  commands        SyncCommand[]
+  commandLogs     SyncCommandLog[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([storeId])
+  @@index([status])
+  @@map("store_nodes")
+}
+
+model StoreNodeBootstrapToken {
+  id        String    @id @default(cuid())
+  storeId   String
+  store     Store     @relation(fields: [storeId], references: [id])
+  label     String?
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdBy String?
+  createdAt DateTime  @default(now())
+
+  @@index([storeId, expiresAt])
+  @@map("store_node_bootstrap_tokens")
+}
+
+model SyncRevision {
+  id          String        @id @default(cuid())
+  storeId     String
+  store       Store         @relation(fields: [storeId], references: [id])
+  domain      String
+  revision    Int
+  payload     Json
+  checksum    String?
+  publishedBy String?
+  createdAt   DateTime      @default(now())
+  commands    SyncCommand[]
+
+  @@unique([storeId, domain, revision])
+  @@index([storeId, domain, createdAt])
+  @@map("sync_revisions")
+}
+
+model SyncCommand {
+  id              String           @id @default(cuid())
+  storeId         String
+  store           Store            @relation(fields: [storeId], references: [id])
+  nodeId          String?
+  node            StoreNode?       @relation(fields: [nodeId], references: [id])
+  revisionId      String?
+  revisionRef     SyncRevision?    @relation(fields: [revisionId], references: [id])
+  domain          String
+  commandType     String
+  payload         Json
+  status          String           @default("PENDING")
+  attempts        Int              @default(0)
+  appliedRevision Int?
+  errorCode       String?
+  errorDetail     String?          @db.Text
+  issuedAt        DateTime         @default(now())
+  acknowledgedAt  DateTime?
+  createdBy       String?
+  logs            SyncCommandLog[]
+
+  @@index([storeId, status, issuedAt])
+  @@index([nodeId, status, issuedAt])
+  @@map("sync_commands")
+}
+
+model SyncCommandLog {
+  id          String      @id @default(cuid())
+  commandId   String
+  command     SyncCommand @relation(fields: [commandId], references: [id])
+  storeId     String
+  store       Store       @relation(fields: [storeId], references: [id])
+  nodeId      String?
+  node        StoreNode?  @relation(fields: [nodeId], references: [id])
+  status      String
+  errorCode   String?
+  errorDetail String?    @db.Text
+  output      Json?
+  createdAt   DateTime    @default(now())
+
+  @@index([commandId, createdAt])
+  @@index([storeId, createdAt])
+  @@map("sync_command_logs")
+}
+
+model IntegrationOrder {
+  id         String              @id @default(cuid())
+  providerId String
+  provider   IntegrationProvider @relation(fields: [providerId], references: [id])
+  storeId    String?
+  store      IntegrationStore?   @relation(fields: [storeId], references: [id])
+  externalId String
+  displayId  String?
+  status     String
+  orderType  String?
+  payload    Json
+  posOrderId String?             @unique
+  posOrder   PosOrder?           @relation(fields: [posOrderId], references: [id])
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  @@unique([providerId, externalId])
+  @@index([status])
+  @@map("integration_orders")
+}
+
+model KitchenTicket {
+  id          String               @id @default(cuid())
+  orderId     String
+  order       PosOrder             @relation(fields: [orderId], references: [id])
+  stationId   String?
+  station     KitchenStation?      @relation(fields: [stationId], references: [id])
+  stationName String?
+  status      String               @default("QUEUED") // QUEUED, SENT, IN_PROGRESS, DONE, ERROR
+  priority    String               @default("NORMAL") // NORMAL, RUSH
+  holdUntil   DateTime?
+  sentAt      DateTime?
+  printedAt   DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  events      KitchenTicketEvent[]
+  createdAt   DateTime             @default(now())
+
+  @@index([stationId])
+  @@map("kitchen_tickets")
+}
+
+model KitchenTicketEvent {
+  id        String        @id @default(cuid())
+  ticketId  String
+  ticket    KitchenTicket @relation(fields: [ticketId], references: [id])
+  action    String
+  userId    String?
+  user      User?         @relation(fields: [userId], references: [id])
+  note      String?
+  createdAt DateTime      @default(now())
+
+  @@index([ticketId])
+  @@map("kitchen_ticket_events")
+}
+
+model PosOrderItem {
+  id             String              @id @default(cuid())
+  orderId        String
+  order          PosOrder            @relation(fields: [orderId], references: [id])
+  menuItemId     String
+  menuItem       MenuItem            @relation(fields: [menuItemId], references: [id])
+  quantity       Int                 @default(1)
+  price          Decimal             @db.Decimal(12, 2)
+  name           String?
+  totalAmount    Decimal?            @db.Decimal(12, 2)
+  taxAmount      Decimal?            @db.Decimal(12, 2)
+  discountAmount Decimal?            @db.Decimal(12, 2)
+  modifiers      OrderItemModifier[]
+  legacyId       Int?
+  legacyPayload  Json?
+  notes          String?
+
+  @@map("order_items")
+}
+
+model OrderItemModifier {
+  id          String       @id @default(cuid())
+  orderItemId String
+  orderItem   PosOrderItem @relation(fields: [orderItemId], references: [id])
+  modifierId  String
+  modifier    MenuModifier @relation(fields: [modifierId], references: [id])
+  customName  String?
+  quantity    Int          @default(1)
+  price       Decimal      @db.Decimal(12, 2)
+
+  @@map("order_item_modifiers")
+}
+
+model OrderDiscount {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      PosOrder @relation(fields: [orderId], references: [id])
+  discountId String
+  discount   Discount @relation(fields: [discountId], references: [id])
+  amount     Decimal? @db.Decimal(12, 2)
+
+  @@map("order_discounts")
+}
+
+model Shift {
+  id         String      @id @default(cuid())
+  name       String
+  status     String      @default("OPEN")
+  startedAt  DateTime    @default(now())
+  endedAt    DateTime?
+  userId     String?
+  user       User?       @relation(fields: [userId], references: [id])
+  timeClocks TimeClock[]
+  createdAt  DateTime    @default(now())
+
+  @@map("shifts")
+}
+
+model TimeClock {
+  id       String    @id @default(cuid())
+  userId   String
+  user     User      @relation(fields: [userId], references: [id])
+  clockIn  DateTime  @default(now())
+  clockOut DateTime?
+  shiftId  String?
+  shift    Shift?    @relation(fields: [shiftId], references: [id])
+
+  @@map("time_clock")
+}
+
+model CashDrawer {
+  id           String            @id @default(cuid())
+  name         String
+  status       String            @default("CLOSED")
+  transactions CashTransaction[]
+  createdAt    DateTime          @default(now())
+
+  @@map("cash_drawers")
+}
+
+model CashTransaction {
+  id        String      @id @default(cuid())
+  drawerId  String?
+  drawer    CashDrawer? @relation(fields: [drawerId], references: [id])
+  userId    String?
+  user      User?       @relation(fields: [userId], references: [id])
+  type      String // IN, OUT, PAYOUT, DROP
+  amount    Decimal     @db.Decimal(12, 2)
+  note      String?
+  details   Json?
+  createdAt DateTime    @default(now())
+
+  @@map("cash_transactions")
+}
+
+model InventoryItem {
+  id                 String                @id @default(cuid())
+  sku                String                @unique
+  name               String
+  unit               String?
+  quantity           Decimal?              @db.Decimal(12, 3)
+  reorderLevel       Decimal?              @db.Decimal(12, 3)
+  legacyId           Int?
+  legacySource       String?
+  ingredients        MenuItemIngredient[]
+  adjustments        InventoryAdjustment[]
+  vendorItems        VendorItem[]
+  purchaseOrderItems PurchaseOrderItem[]
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  @@map("inventory_items")
+}
+
+model MenuItemPrice {
+  id         String   @id @default(cuid())
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  priceType  String // DEFAULT, DINE_IN, TAKEOUT, DELIVERY, BAR
+  price      Decimal  @db.Decimal(12, 2)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([menuItemId, priceType])
+  @@map("menu_item_prices")
+}
+
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("app_settings")
+}
+
+model Station {
+  id                String   @id @default(cuid())
+  name              String
+  terminalId        String?
+  receiptPrinterId  String?
+  kitchenPrinterId  String?
+  barPrinterId      String?
+  cashDrawerId      String?
+  kitchenStationIds Json?
+  barStationIds     Json?
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("stations")
+}
+
+model HouseAccount {
+  id            String   @id @default(cuid())
+  accountNumber String   @unique
+  customerName  String
+  phone         String?
+  balance       Decimal  @default(0) @db.Decimal(12, 2)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("house_accounts")
+}
+
+model KitchenStation {
+  id        String          @id @default(cuid())
+  name      String
+  printerId String?
+  items     MenuItem[]
+  groups    MenuGroup[]
+  tickets   KitchenTicket[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@map("kitchen_stations")
+}
+
+model MenuItemIngredient {
+  id              String        @id @default(cuid())
+  menuItemId      String
+  menuItem        MenuItem      @relation(fields: [menuItemId], references: [id])
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  quantity        Decimal       @db.Decimal(12, 3)
+  unit            String?
+  createdAt       DateTime      @default(now())
+
+  @@unique([menuItemId, inventoryItemId])
+  @@map("menu_item_ingredients")
+}
+
+model Vendor {
+  id             String          @id @default(cuid())
+  name           String
+  contact        String?
+  phone          String?
+  email          String?
+  items          VendorItem[]
+  purchaseOrders PurchaseOrder[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@map("vendors")
+}
+
+model VendorItem {
+  id              String        @id @default(cuid())
+  vendorId        String
+  vendor          Vendor        @relation(fields: [vendorId], references: [id])
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  vendorSku       String?
+  cost            Decimal?      @db.Decimal(12, 3)
+
+  @@map("vendor_items")
+}
+
+model PurchaseOrder {
+  id         String              @id @default(cuid())
+  vendorId   String
+  vendor     Vendor              @relation(fields: [vendorId], references: [id])
+  status     String              @default("OPEN")
+  receivedAt DateTime?
+  items      PurchaseOrderItem[]
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  quantity        Decimal       @db.Decimal(12, 3)
+  unitCost        Decimal?      @db.Decimal(12, 3)
+
+  @@map("purchase_order_items")
+}
+
+model InventoryAdjustment {
+  id              String        @id @default(cuid())
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  delta           Decimal       @db.Decimal(12, 3)
+  reason          String?
+  createdAt       DateTime      @default(now())
+
+  @@map("inventory_adjustments")
+}
+
+model Payment {
+  id                String   @id @default(cuid())
+  orderId           String
+  order             PosOrder @relation(fields: [orderId], references: [id])
+  method            String
+  amount            Decimal  @db.Decimal(12, 2)
+  status            String   @default("PENDING")
+  reference         String?
+  tenderAmount      Decimal? @db.Decimal(12, 2)
+  tipAmount         Decimal? @db.Decimal(12, 2)
+  transactionType   String?
+  paymentType       String?
+  cardType          String?
+  cardNumberMasked  String?
+  cardAuthCode      String?
+  cardTransactionId String?
+  cardReader        String?
+  captured          Boolean?
+  voided            Boolean?
+  legacyId          Int?
+  legacyPayload     Json?
+  createdAt         DateTime @default(now())
+
+  @@map("payments")
+}
+
+model LegacyRecord {
+  id          String   @id @default(cuid())
+  sourceTable String
+  sourceId    String?
+  payload     Json
+  importedAt  DateTime @default(now())
+
+  @@map("legacy_records")
+}
+
+model OrderSequence {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  @@map("order_sequences")
+}
+
+model DailyTicketSequence {
+  id         Int      @id @default(autoincrement())
+  date       String   @unique
+  lastNumber Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("daily_ticket_sequences")
+}

@@ -1,0 +1,84 @@
+version: "3.9"
+
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password --sql-mode=""
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-websys-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-websys_pos}
+    volumes:
+      - websys_edge_mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-websys-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-websys-root}@db:3306/${MYSQL_DATABASE:-websys_pos}
+      PORT: 8080
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      DEVICE_BRIDGE_URL: http://device-bridge:7090
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npm install && npm run prisma:generate && npx prisma db push && npm run db:seed && npm run start"
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://backend:8080
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    command: sh -c "npm install && npm run build && npm run preview -- --host 0.0.0.0 --port 5173"
+
+  store-agent:
+    build:
+      context: ./store-agent
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      CLOUD_API_URL: ${CLOUD_API_URL}
+      EDGE_API_URL: http://backend:8080
+      STORE_ID: ${STORE_ID}
+      BOOTSTRAP_TOKEN: ${BOOTSTRAP_TOKEN}
+      NODE_ID: ${NODE_ID:-}
+      NODE_TOKEN: ${NODE_TOKEN:-}
+      NODE_LABEL: ${NODE_LABEL:-Store Edge Node}
+      SOFTWARE_VERSION: ${SOFTWARE_VERSION:-0.1.0}
+      POLL_INTERVAL_MS: ${POLL_INTERVAL_MS:-5000}
+      EDGE_USERNAME: ${EDGE_USERNAME:-}
+      EDGE_PASSWORD: ${EDGE_PASSWORD:-}
+      EDGE_PIN: ${EDGE_PIN:-}
+      EDGE_AUTH_BEARER: ${EDGE_AUTH_BEARER:-}
+      EDGE_USER_ID: ${EDGE_USER_ID:-}
+      AGENT_STATE_FILE: /data/agent-state.json
+    volumes:
+      - websys_edge_agent:/data
+    depends_on:
+      - backend
+
+  device-bridge:
+    build: ./device-bridge
+    restart: unless-stopped
+    environment:
+      DEVICE_BRIDGE_PORT: 7090
+      DEVICE_BRIDGE_CONFIG: ./config.json
+    ports:
+      - "7090:7090"
+    command: sh -c "npm install && npm run start"
+
+volumes:
+  websys_edge_mysql:
+  websys_edge_agent:

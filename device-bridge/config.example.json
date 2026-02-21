@@ -1,0 +1,74 @@
+{
+  "printers": [
+    {
+      "id": "receipt-1",
+      "name": "POS80C",
+      "type": "escpos",
+      "connection": {
+        "type": "usb",
+        "vendorId": "0x0000",
+        "productId": "0x0000"
+      }
+    },
+    {
+      "id": "kitchen-1",
+      "name": "Epson TM-T88",
+      "type": "escpos",
+      "connection": {
+        "type": "ethernet",
+        "host": "192.168.1.50",
+        "port": 9100
+      }
+    }
+  ],
+  "cashDrawers": [
+    {
+      "id": "drawer-1",
+      "name": "Kick via receipt printer",
+      "printerId": "receipt-1"
+    }
+  ],
+  "scanners": [
+    {
+      "id": "scanner-1",
+      "name": "USB HID",
+      "type": "usb-hid"
+    },
+    {
+      "id": "scanner-2",
+      "name": "Ethernet scanner",
+      "type": "ethernet",
+      "host": "192.168.1.60",
+      "port": 9000
+    }
+  ],
+  "scales": [
+    {
+      "id": "scale-1",
+      "name": "USB scale",
+      "type": "usb"
+    },
+    {
+      "id": "scale-2",
+      "name": "Ethernet scale",
+      "type": "ethernet",
+      "host": "192.168.1.61",
+      "port": 4001
+    }
+  ],
+  "customerDisplays": [
+    {
+      "id": "display-1",
+      "name": "Customer display",
+      "type": "usb"
+    }
+  ],
+  "pax": {
+    "model": "A35",
+    "connection": {
+      "type": "ethernet",
+      "host": "192.168.1.70",
+      "port": 10009
+    }
+  }
+}

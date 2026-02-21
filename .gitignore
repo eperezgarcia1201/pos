@@ -1,0 +1,31 @@
+.DS_Store
+
+# Node / JS
+**/node_modules/
+**/dist/
+**/dist-platform/
+**/.vite/
+**/coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment and secrets
+**/.env
+**/.env.*
+!**/.env.example
+
+# Expo / React Native
+**/.expo/
+**/.expo-shared/
+**/android/
+**/ios/
+
+# Local runtime/cache
+**/.cache/
+**/.tmp/
+**/tmp/
+**/*.log
+
+# Generated assets
+**/*.tsbuildinfo

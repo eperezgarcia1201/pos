@@ -1,0 +1,43 @@
+{
+  "name": "posweb-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "db:bootstrap": "tsx scripts/bootstrap-mysql.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "cloud:smoke": "tsx scripts/cloud-smoke.ts",
+    "legacy:stage": "tsx scripts/import-legacy.ts --dir=./export",
+    "legacy:transform": "tsx scripts/transform-legacy.ts --dir=./export"
+  },
+  "dependencies": {
+    "@fastify/cors": "^8.5.0",
+    "@fastify/helmet": "^9.1.0",
+    "@fastify/jwt": "^6.7.1",
+    "@fastify/sensible": "^4.1.0",
+    "@prisma/client": "^5.21.1",
+    "bcryptjs": "^2.4.3",
+    "dictionary-en": "^4.0.0",
+    "dictionary-es": "^4.0.0",
+    "fastify": "^4.28.1",
+    "globalpayments-api": "^3.10.11",
+    "jsonwebtoken": "^9.0.3",
+    "nspell": "^2.1.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^20.12.12",
+    "mysql2": "^3.11.5",
+    "prisma": "^5.21.1",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3"
+  }
+}
