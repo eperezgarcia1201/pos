@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAppLanguage } from "../lib/i18n";
+import { setCurrentUser, type SessionUser } from "../lib/session";
 
 type BilingualText = {
   en: string;
@@ -69,6 +70,10 @@ export default function ServerConnectionGuide() {
   const [claimPackage, setClaimPackage] = useState<OnsiteClaimResponse | null>(null);
   const [claimLabel, setClaimLabel] = useState("");
   const [claimBusy, setClaimBusy] = useState(false);
+  const [claimAccessCode, setClaimAccessCode] = useState("");
+  const [unlockBusy, setUnlockBusy] = useState(false);
+  const [showClaimUnlock, setShowClaimUnlock] = useState(false);
+  const [unlockError, setUnlockError] = useState<string | null>(null);
 
   useEffect(() => {
     setLanguage(appLanguage === "es" ? "es" : "en");
@@ -96,9 +101,12 @@ export default function ServerConnectionGuide() {
     void loadGuide();
   }, [internalMode]);
 
+  const isAccessCodeError = (message: string) => message.toLowerCase().includes("access code required");
+
   const generateClaimPackage = async () => {
     setClaimBusy(true);
     setError(null);
+    setUnlockError(null);
     try {
       const payload = await apiFetch("/onsite/claim/create", {
         method: "POST",
@@ -107,12 +115,52 @@ export default function ServerConnectionGuide() {
         })
       });
       setClaimPackage(payload as OnsiteClaimResponse);
+      setShowClaimUnlock(false);
       const identity = await apiFetch("/onsite/identity").catch(() => null);
       setOnsiteIdentity(identity as OnsiteIdentityResponse | null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate claim package.");
+      const message = err instanceof Error ? err.message : "Failed to generate claim package.";
+      if (isAccessCodeError(message)) {
+        setShowClaimUnlock(true);
+        setError(
+          language === "es"
+            ? "Se requiere codigo de acceso para generar el claim."
+            : "Access code is required to generate claim."
+        );
+      } else {
+        setError(message);
+      }
     } finally {
       setClaimBusy(false);
+    }
+  };
+
+  const unlockAndGenerateClaim = async () => {
+    const pin = claimAccessCode.trim();
+    if (!pin) {
+      setUnlockError(language === "es" ? "Ingresa codigo de acceso." : "Enter access code.");
+      return;
+    }
+    setUnlockBusy(true);
+    setUnlockError(null);
+    setError(null);
+    try {
+      const result = await apiFetch("/auth/pin", {
+        method: "POST",
+        body: JSON.stringify({ pin })
+      });
+      const login = result as { user?: SessionUser; token?: string };
+      if (!login.user?.id) {
+        throw new Error(language === "es" ? "Respuesta de login invalida." : "Invalid login response.");
+      }
+      setCurrentUser({ ...login.user, token: typeof login.token === "string" ? login.token : undefined });
+      setClaimAccessCode("");
+      setShowClaimUnlock(false);
+      await generateClaimPackage();
+    } catch (err) {
+      setUnlockError(err instanceof Error ? err.message : language === "es" ? "No se pudo desbloquear." : "Unable to unlock.");
+    } finally {
+      setUnlockBusy(false);
     }
   };
 
@@ -237,6 +285,39 @@ export default function ServerConnectionGuide() {
                     : "Generate Claim"}
               </button>
             </div>
+
+            {showClaimUnlock ? (
+              <div className="manual-access-unlock">
+                <p className="hint">
+                  {language === "es"
+                    ? "Desbloquea con tu codigo PIN para autorizar la generacion del claim."
+                    : "Unlock with your PIN code to authorize claim generation."}
+                </p>
+                <div className="manual-access-row">
+                  <input
+                    type="password"
+                    value={claimAccessCode}
+                    onChange={(event) => setClaimAccessCode(event.target.value)}
+                    placeholder={language === "es" ? "Codigo de acceso" : "Access code"}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        void unlockAndGenerateClaim();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="terminal-btn primary"
+                    disabled={unlockBusy}
+                    onClick={() => void unlockAndGenerateClaim()}
+                  >
+                    {unlockBusy ? (language === "es" ? "Validando..." : "Validating...") : language === "es" ? "Desbloquear" : "Unlock"}
+                  </button>
+                </div>
+                {unlockError ? <p style={{ color: "#fca5a5", margin: 0 }}>{unlockError}</p> : null}
+              </div>
+            ) : null}
 
             {onsiteIdentity ? (
               <div className="manual-hint-grid">
