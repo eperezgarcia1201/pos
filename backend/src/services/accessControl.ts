@@ -102,6 +102,7 @@ const writeRules: Rule[] = [
 ];
 
 const allowUnauthed = (path: string) =>
+  path === "/" ||
   path === "/health" ||
   path.startsWith("/auth") ||
   path.startsWith("/settings/services") ||

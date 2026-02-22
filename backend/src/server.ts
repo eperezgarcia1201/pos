@@ -106,6 +106,21 @@ export async function buildServer() {
 
   registerAccessControl(app);
 
+  app.get("/", async () => ({
+    service: "Websys POS API",
+    status: "ok",
+    docs: {
+      health: "/health",
+      authPin: "/auth/pin",
+      onsitePublicClaimConsume: "/onsite/public/claim/consume",
+      onsitePublicClaimFinalize: "/onsite/public/claim/finalize"
+    },
+    ui: {
+      posFrontend: "http://localhost:5173",
+      cloudPlatform: "http://localhost:5173/cloud/platform/hierarchy"
+    }
+  }));
+
   app.get("/health", async () => ({ ok: true }));
 
   await registerAuthRoutes(app);
