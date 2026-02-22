@@ -164,10 +164,18 @@ const CLOUD_SESSION_STORAGE_KEY = "pos_cloud_platform_session";
 
 function toErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message.trim()) {
-    if (error.message.toLowerCase().includes("failed to fetch")) {
+    const message = error.message.trim();
+    const lower = message.toLowerCase();
+    if (lower.includes("failed to fetch")) {
       return "Cannot reach Cloud API. Make sure backend is running on http://localhost:8080.";
     }
-    return error.message;
+    if (lower.includes("onsite server did not respond in time") || lower.includes("cloud cannot reach this onsite url")) {
+      return "Cloud server cannot reach your onsite URL. Use a public URL, VPN, or tunnel from cloud to onsite server.";
+    }
+    if (lower.includes("crypto.randomuuid is not a function")) {
+      return "Onsite server is running an old backend build. Pull latest code on onsite server and restart backend.";
+    }
+    return message;
   }
   return fallback;
 }

@@ -324,13 +324,15 @@ async function consumeOnsiteClaim(baseUrl: string, claimId: string, claimCode: s
           : (parsed as { message?: string; error?: string } | null)?.message ||
             (parsed as { message?: string; error?: string } | null)?.error ||
             `Onsite claim request failed (${response.status})`;
-      throw new Error(message);
+      throw new Error(`Onsite claim failed at ${targetUrl}: ${message}`);
     }
 
     return onsiteConsumeResponseSchema.parse(parsed);
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error("Onsite server did not respond in time.");
+      throw new Error(
+        `Onsite server did not respond in time (${targetUrl}). Cloud cannot reach this onsite URL. Use VPN/tunnel/public route.`
+      );
     }
     throw error;
   } finally {
