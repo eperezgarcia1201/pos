@@ -2584,6 +2584,7 @@ body {
 .cloud-platform-dashboard {
   display: grid;
   gap: 14px;
+  overflow: hidden;
 }
 
 .cloud-platform-stat-grid {
@@ -2635,6 +2636,8 @@ body {
   padding: 14px;
   display: grid;
   gap: 10px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .cloud-platform-analytics-card h4 {
@@ -2718,13 +2721,21 @@ body {
 .cloud-platform-distribution-list {
   display: grid;
   gap: 8px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .cloud-platform-distribution-item {
   display: grid;
-  grid-template-columns: minmax(130px, 1fr) minmax(140px, 1.2fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
   gap: 10px;
   align-items: center;
+  min-width: 0;
+}
+
+.cloud-platform-distribution-item > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .cloud-platform-distribution-item span {
@@ -2737,6 +2748,7 @@ body {
 
 .cloud-platform-distribution-item div {
   height: 10px;
+  width: 100%;
   border-radius: 999px;
   background: rgba(54, 68, 99, 0.6);
   overflow: hidden;
@@ -2984,6 +2996,11 @@ body {
 
   .cloud-platform-health-row {
     grid-template-columns: 1fr;
+  }
+
+  .cloud-platform-distribution-item {
+    grid-template-columns: 1fr;
+    gap: 6px;
   }
 }
 
