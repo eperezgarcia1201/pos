@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { Prisma } from "@prisma/client";
-import { randomUUID } from "node:crypto";
+import crypto from "node:crypto";
 import { z } from "zod";
 import { prisma } from "../services/prisma.js";
 import { resolveStation } from "../services/stations.js";
@@ -78,6 +78,13 @@ const splitSchema = z.object({
 const voidSchema = z.object({
   reason: z.string().min(2)
 });
+
+function createChainGroupId() {
+  if (typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return crypto.randomBytes(16).toString("hex");
+}
 
 const serviceSchema = z.object({
   serviceCharge: z.number().nonnegative().optional(),
@@ -463,7 +470,7 @@ export async function registerOrderRoutes(app: FastifyInstance) {
     }
 
     const sourceMeta = getOrderChainMeta(source.legacyPayload);
-    const chainGroupId = sourceMeta.chainGroupId ?? randomUUID();
+    const chainGroupId = sourceMeta.chainGroupId ?? createChainGroupId();
     const chainRootOrderId = sourceMeta.chainRootOrderId ?? source.id;
     const chainIndex = sourceMeta.chainIndex ?? 1;
 

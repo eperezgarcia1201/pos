@@ -99,7 +99,10 @@ function generateClaimCode() {
 }
 
 function createServerUid() {
-  return `srv_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`;
+  const randomId = typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID().replace(/-/g, "")
+    : crypto.randomBytes(16).toString("hex");
+  return `srv_${randomId.slice(0, 20)}`;
 }
 
 function parseOnsiteIdentity(value: unknown): OnsiteIdentityState | null {

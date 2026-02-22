@@ -10,6 +10,14 @@ type QueuedRequest = {
 const DB_NAME = "posweb-offline";
 const STORE = "queue";
 
+function createQueueId() {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+  const random = `${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`;
+  return `q_${Date.now().toString(36)}_${random.slice(0, 16)}`;
+}
+
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, 1);
@@ -28,7 +36,7 @@ export async function enqueueRequest(request: Omit<QueuedRequest, "id" | "create
   const db = await openDb();
   const tx = db.transaction(STORE, "readwrite");
   const store = tx.objectStore(STORE);
-  const id = crypto.randomUUID();
+  const id = createQueueId();
   store.put({ ...request, id, createdAt: Date.now() });
   return new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => resolve();
