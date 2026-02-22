@@ -160,6 +160,16 @@ type SavingScope =
   | null;
 
 type CloudNavSectionKey = "dashboard" | "resellers" | "tenants" | "locations" | "servers" | "analytics";
+type CloudPrimaryNavKey =
+  | "dashboard"
+  | "resellers"
+  | "tenants"
+  | "locations"
+  | "servers"
+  | "accounts"
+  | "terminals"
+  | "reports"
+  | "alerts";
 
 const CLOUD_NAV_ITEMS: CloudNavSectionKey[] = [
   "dashboard",
@@ -168,6 +178,30 @@ const CLOUD_NAV_ITEMS: CloudNavSectionKey[] = [
   "locations",
   "servers",
   "analytics"
+];
+
+const CLOUD_PRIMARY_NAV_ITEMS: Array<{ key: CloudPrimaryNavKey; section: CloudNavSectionKey }> = [
+  { key: "dashboard", section: "dashboard" },
+  { key: "resellers", section: "resellers" },
+  { key: "tenants", section: "tenants" },
+  { key: "locations", section: "locations" },
+  { key: "servers", section: "servers" },
+  { key: "accounts", section: "tenants" },
+  { key: "terminals", section: "servers" },
+  { key: "reports", section: "analytics" },
+  { key: "alerts", section: "analytics" }
+];
+
+const CLOUD_SIDEBAR_ITEMS: Array<{ key: CloudPrimaryNavKey; section: CloudNavSectionKey; indicator?: boolean }> = [
+  { key: "dashboard", section: "dashboard" },
+  { key: "resellers", section: "resellers" },
+  { key: "tenants", section: "tenants" },
+  { key: "locations", section: "locations", indicator: true },
+  { key: "servers", section: "servers", indicator: true },
+  { key: "accounts", section: "tenants", indicator: true },
+  { key: "terminals", section: "servers", indicator: true },
+  { key: "reports", section: "analytics" },
+  { key: "alerts", section: "analytics" }
 ];
 
 const CLOUD_SESSION_STORAGE_KEY = "pos_cloud_platform_session";
@@ -189,6 +223,34 @@ function cloudNavLabel(
       return tx("Servers", "Servidores");
     case "analytics":
       return tx("Analytics", "Analitica");
+    default:
+      return key;
+  }
+}
+
+function cloudPrimaryNavLabel(
+  key: CloudPrimaryNavKey,
+  tx: (english: string, spanish: string, params?: Record<string, string | number>) => string
+) {
+  switch (key) {
+    case "dashboard":
+      return tx("Dashboard", "Panel");
+    case "resellers":
+      return tx("Resellers", "Revendedores");
+    case "tenants":
+      return tx("Tenants", "Inquilinos");
+    case "locations":
+      return tx("Locations", "Ubicaciones");
+    case "servers":
+      return tx("Servers", "Servidores");
+    case "accounts":
+      return tx("Accounts", "Cuentas");
+    case "terminals":
+      return tx("POS Terminals", "Terminales POS");
+    case "reports":
+      return tx("Reports", "Reportes");
+    case "alerts":
+      return tx("Alerts", "Alertas");
     default:
       return key;
   }
@@ -329,6 +391,7 @@ export default function CloudStores() {
   const [tenantFormError, setTenantFormError] = useState<string | null>(null);
   const [tenantFormMessage, setTenantFormMessage] = useState<string | null>(null);
   const [activeNavSection, setActiveNavSection] = useState<CloudNavSectionKey>("dashboard");
+  const [activePrimaryNav, setActivePrimaryNav] = useState<CloudPrimaryNavKey>("dashboard");
 
   const [resellers, setResellers] = useState<Reseller[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -978,6 +1041,18 @@ export default function CloudStores() {
     }
   };
 
+  const activateCloudSection = (section: CloudNavSectionKey, primaryKey?: CloudPrimaryNavKey) => {
+    setActiveNavSection(section);
+    if (primaryKey) {
+      setActivePrimaryNav(primaryKey);
+    } else {
+      setActivePrimaryNav(section === "analytics" ? "reports" : section);
+    }
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   const showDashboardView = activeNavSection === "dashboard" || activeNavSection === "analytics";
   const showResellerView = activeNavSection === "resellers";
   const showTenantView = activeNavSection === "tenants";
@@ -990,49 +1065,48 @@ export default function CloudStores() {
 
   return (
     <div className="screen-shell cloud-platform-shell">
-      <header className="screen-header cloud-platform-topbar">
+      <header className="screen-header cloud-platform-topbar cloud-platform-topbar-primary">
         <div className="cloud-platform-brand-block">
           <span className="cloud-platform-brand-mark" aria-hidden="true">
             ☁
           </span>
           <strong>{tx("Cloud Platform", "Plataforma Cloud")}</strong>
         </div>
-        <nav className="cloud-platform-nav" aria-label={tx("Cloud navigation", "Navegacion cloud")}>
-          {CLOUD_NAV_ITEMS.map((itemKey) => (
+        <nav className="cloud-platform-nav cloud-platform-nav-primary" aria-label={tx("Cloud navigation", "Navegacion cloud")}>
+          {CLOUD_PRIMARY_NAV_ITEMS.map((item) => (
             <button
-              key={itemKey}
+              key={item.key}
               type="button"
-              className={`cloud-platform-nav-item${activeNavSection === itemKey ? " active" : ""}`}
-              onClick={() => {
-                setActiveNavSection(itemKey);
-                if (typeof window !== "undefined") {
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }
-              }}
+              className={`cloud-platform-nav-item${activePrimaryNav === item.key ? " active" : ""}`}
+              onClick={() => activateCloudSection(item.section, item.key)}
             >
-              {cloudNavLabel(itemKey, tx)}
+              {cloudPrimaryNavLabel(item.key, tx)}
             </button>
           ))}
         </nav>
-        <div className="cloud-platform-top-actions">
-          <CloudPortalPreferenceControls />
-          <button type="button" className="terminal-btn ghost" onClick={() => navigate("/settings/cloud-sync")}>
-            {tx("Sync", "Sincronizar")}
-          </button>
-          <button type="button" className="terminal-btn ghost" onClick={() => navigate("/settings/cloud-network")}>
-            {tx("Store Network", "Red de tiendas")}
-          </button>
-          <button type="button" className="terminal-btn ghost" onClick={() => navigate("/back-office")}>
-            {tx("Back Office", "Back Office")}
-          </button>
+        <div className="cloud-platform-top-actions cloud-platform-global-actions">
+          <span className="cloud-platform-mini-icon" aria-hidden="true">
+            ☰
+          </span>
+          <span className="cloud-platform-mini-icon" aria-hidden="true">
+            ▤
+          </span>
+          <span className="cloud-platform-mini-icon" aria-hidden="true">
+            ⌁
+          </span>
           {cloudAccount ? (
-            <button type="button" className="terminal-btn ghost" onClick={logoutCloudAccount}>
-              {tx("Sign Out Cloud", "Cerrar sesion cloud")}
+            <button type="button" className="terminal-btn ghost" onClick={() => navigate("/settings/cloud-sync")}>
+              {tx("Sync", "Sincronizar")}
             </button>
           ) : null}
-          {cloudAccount ? (
-            <button type="button" className="terminal-btn primary" onClick={() => void refreshPlatform()} disabled={loading}>
-              {loading ? tx("Refreshing...", "Actualizando...") : tx("Refresh", "Actualizar")}
+          {cloudAccount && cloudAccount.accountType === "OWNER" ? (
+            <button
+              type="button"
+              className="terminal-btn ghost"
+              onClick={() => activateCloudSection("analytics", "alerts")}
+              title={tx("Owner scope", "Scope owner")}
+            >
+              {tx("Owner", "Owner")}
             </button>
           ) : null}
           <div className="cloud-platform-avatar" aria-label={tx("Current user", "Usuario actual")}>
@@ -1041,15 +1115,52 @@ export default function CloudStores() {
         </div>
       </header>
 
-      <section className="panel cloud-platform-title-panel">
-        <h2>{tx("Cloud Platform Control Center", "Centro de control de plataforma cloud")}</h2>
-        <p>
-          {tx(
-            "Owner to reseller to tenant to multi-location stores, fully scoped by cloud account.",
-            "Owner a revendedor a inquilino a tiendas multiubicacion, totalmente limitado por cuenta cloud."
-          )}
-        </p>
-      </section>
+      {!sessionBooting && cloudAccount ? (
+        <section className="panel cloud-platform-toolbar">
+          <nav className="cloud-platform-nav cloud-platform-nav-secondary" aria-label={tx("Cloud quick navigation", "Navegacion rapida cloud")}>
+            {CLOUD_NAV_ITEMS.map((itemKey) => (
+              <button
+                key={itemKey}
+                type="button"
+                className={`cloud-platform-nav-item${activeNavSection === itemKey ? " active" : ""}`}
+                onClick={() => activateCloudSection(itemKey)}
+              >
+                {cloudNavLabel(itemKey, tx)}
+              </button>
+            ))}
+          </nav>
+          <div className="cloud-platform-top-actions cloud-platform-toolbar-actions">
+            <CloudPortalPreferenceControls />
+            <button type="button" className="terminal-btn ghost" onClick={() => navigate("/settings/cloud-sync")}>
+              {tx("Sync", "Sincronizar")}
+            </button>
+            <button type="button" className="terminal-btn ghost" onClick={() => navigate("/settings/cloud-network")}>
+              {tx("Store Network", "Red de tiendas")}
+            </button>
+            <button type="button" className="terminal-btn ghost" onClick={() => navigate("/back-office")}>
+              {tx("Back Office", "Back Office")}
+            </button>
+            <button type="button" className="terminal-btn ghost" onClick={logoutCloudAccount}>
+              {tx("Sign Out Cloud", "Cerrar sesion cloud")}
+            </button>
+            <button type="button" className="terminal-btn primary" onClick={() => void refreshPlatform()} disabled={loading}>
+              {loading ? tx("Refreshing...", "Actualizando...") : tx("Refresh", "Actualizar")}
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      {!cloudAccount ? (
+        <section className="panel cloud-platform-title-panel">
+          <h2>{tx("Cloud Platform Control Center", "Centro de control de plataforma cloud")}</h2>
+          <p>
+            {tx(
+              "Owner to reseller to tenant to multi-location stores, fully scoped by cloud account.",
+              "Owner a revendedor a inquilino a tiendas multiubicacion, totalmente limitado por cuenta cloud."
+            )}
+          </p>
+        </section>
+      ) : null}
 
       {sessionBooting ? (
         <section className="panel cloud-platform-auth">
@@ -1098,7 +1209,44 @@ export default function CloudStores() {
       ) : null}
 
       {!sessionBooting && cloudAccount ? (
-        <div className="screen-grid cloud-platform-grid">
+        <div className="cloud-platform-frame">
+          <aside className="panel cloud-platform-sidebar">
+            <div className="cloud-platform-sidebar-head">
+              <strong>{tx("Cloud Navigation", "Navegacion cloud")}</strong>
+            </div>
+            <nav className="cloud-platform-sidebar-nav" aria-label={tx("Cloud sidebar", "Barra lateral cloud")}>
+              {CLOUD_SIDEBAR_ITEMS.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={`cloud-platform-sidebar-item${activePrimaryNav === item.key ? " active" : ""}`}
+                  onClick={() => activateCloudSection(item.section, item.key)}
+                >
+                  <span>{cloudPrimaryNavLabel(item.key, tx)}</span>
+                  {item.indicator ? <i aria-hidden="true" className="cloud-platform-sidebar-dot" /> : null}
+                </button>
+              ))}
+            </nav>
+            <div className="cloud-platform-sidebar-footer">
+              <button type="button" className="terminal-btn ghost">
+                {tx("Support", "Soporte")}
+              </button>
+              <span className="hint">{tx("Version 1.0", "Version 1.0")}</span>
+            </div>
+          </aside>
+
+          <main className="cloud-platform-content">
+            <section className="panel cloud-platform-title-panel">
+              <h2>{tx("Cloud Platform Control Center", "Centro de control de plataforma cloud")}</h2>
+              <p>
+                {tx(
+                  "Owner to reseller to tenant to multi-location stores, fully scoped by cloud account.",
+                  "Owner a revendedor a inquilino a tiendas multiubicacion, totalmente limitado por cuenta cloud."
+                )}
+              </p>
+            </section>
+
+            <div className="screen-grid cloud-platform-grid">
           {showDashboardView ? (
             <section className="panel cloud-platform-span cloud-platform-dashboard">
             <div className="cloud-platform-stat-grid">
@@ -1913,11 +2061,16 @@ export default function CloudStores() {
             ) : null}
             </section>
           ) : null}
+            </div>
+
+            {error ? <p className="cloud-platform-alert cloud-platform-alert-error">{error}</p> : null}
+            {message ? <p className="cloud-platform-alert cloud-platform-alert-success">{message}</p> : null}
+          </main>
         </div>
       ) : null}
 
-      {error ? <p className="cloud-platform-alert cloud-platform-alert-error">{error}</p> : null}
-      {message ? <p className="cloud-platform-alert cloud-platform-alert-success">{message}</p> : null}
+      {!cloudAccount && error ? <p className="cloud-platform-alert cloud-platform-alert-error">{error}</p> : null}
+      {!cloudAccount && message ? <p className="cloud-platform-alert cloud-platform-alert-success">{message}</p> : null}
     </div>
   );
 }
