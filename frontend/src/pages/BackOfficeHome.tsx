@@ -214,10 +214,25 @@ export default function BackOfficeHome() {
         persistCurrentUser(sessionUser);
         setCurrentUser(sessionUser);
         sessionStorage.setItem("pos_allowed_group", "back-office");
+        setImpersonationError(null);
         navigate("/back-office", { replace: true });
       } catch (err) {
         if (cancelled) return;
-        setImpersonationError(err instanceof Error ? err.message : "Unable to impersonate this customer back office.");
+        const existingUser = getCurrentUser();
+        if (existingUser) {
+          setCurrentUser(existingUser);
+          sessionStorage.setItem("pos_allowed_group", "back-office");
+          setImpersonationError(null);
+          navigate("/back-office", { replace: true });
+          return;
+        }
+
+        setImpersonationError(
+          err instanceof Error
+            ? err.message
+            : "Unable to impersonate this customer back office."
+        );
+        navigate("/back-office", { replace: true });
       } finally {
         if (!cancelled) setImpersonating(false);
       }
