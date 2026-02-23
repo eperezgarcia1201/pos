@@ -55,6 +55,58 @@ import {
 } from "./lib/stationMode";
 
 const CLOUD_BACKOFFICE_SESSION_KEY = "pos_cloud_backoffice_session";
+const FLOAT_ROUTE_HIDE_PREFIXES = ["/settings", "/back-office", "/cloud/platform"];
+const FLOAT_SUPPRESSION_SELECTORS = [
+  "[data-hide-global-floats='true']",
+  ".store-settings-footer",
+  ".paygw-footer",
+  ".paygw-sidebar-actions"
+];
+
+function isVisible(element: HTMLElement) {
+  const style = window.getComputedStyle(element);
+  if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return false;
+  const rect = element.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
+}
+
+function hasFloatSuppressionMarker() {
+  return FLOAT_SUPPRESSION_SELECTORS.some((selector) =>
+    Array.from(document.querySelectorAll<HTMLElement>(selector)).some((element) => isVisible(element))
+  );
+}
+
+function useSuppressGlobalFloats(pathname: string) {
+  const hideByRoute = FLOAT_ROUTE_HIDE_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  const [suppressed, setSuppressed] = useState(hideByRoute);
+
+  useEffect(() => {
+    if (hideByRoute) {
+      setSuppressed(true);
+      return;
+    }
+
+    const evaluate = () => setSuppressed(hasFloatSuppressionMarker());
+    evaluate();
+    const delayed = window.setTimeout(evaluate, 120);
+    const observer = new MutationObserver(evaluate);
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["class", "style", "data-hide-global-floats"]
+    });
+    window.addEventListener("resize", evaluate);
+
+    return () => {
+      window.clearTimeout(delayed);
+      observer.disconnect();
+      window.removeEventListener("resize", evaluate);
+    };
+  }, [hideByRoute, pathname]);
+
+  return suppressed;
+}
 
 export default function App() {
   const location = useLocation();
@@ -75,6 +127,7 @@ export default function App() {
   const routeAllowedByStationMode = isRouteAllowedInStationMode(stationMode, location.pathname);
   const bypassPinForStationMode = stationModeLocked && routeAllowedByStationMode && !isStationModeRoute;
   const currentGroup = routeGroup(location.pathname);
+  const suppressGlobalFloats = useSuppressGlobalFloats(location.pathname);
   const needsGate =
     !isHome &&
     !isKitchen &&
@@ -203,8 +256,8 @@ export default function App() {
             <Route path="/settings" element={<FeaturePlaceholder />} />
             <Route path="/feature/:feature" element={<FeaturePlaceholder />} />
           </Routes>
-          <StationTypeFloat />
-          <HomeFloat stationMode={stationMode} />
+          <StationTypeFloat suppress={suppressGlobalFloats} />
+          <HomeFloat stationMode={stationMode} suppress={suppressGlobalFloats} />
           <PinGate
             open={stationModePinOpen}
             language={language}
@@ -225,13 +278,13 @@ export default function App() {
   );
 }
 
-function StationTypeFloat() {
+function StationTypeFloat({ suppress }: { suppress: boolean }) {
   const navigate = useNavigate();
   const location = useLocation();
   const language = useAppLanguage();
   const isCloudBackOfficeSession =
     typeof window !== "undefined" && sessionStorage.getItem(CLOUD_BACKOFFICE_SESSION_KEY) === "1";
-  if (location.pathname === "/station-mode" || isCloudBackOfficeSession) return null;
+  if (suppress || location.pathname === "/station-mode" || isCloudBackOfficeSession) return null;
 
   return (
     <button
@@ -245,7 +298,7 @@ function StationTypeFloat() {
   );
 }
 
-function HomeFloat({ stationMode }: { stationMode: StationMode }) {
+function HomeFloat({ stationMode, suppress }: { stationMode: StationMode; suppress: boolean }) {
   const navigate = useNavigate();
   const location = useLocation();
   const language = useAppLanguage();
@@ -257,6 +310,7 @@ function HomeFloat({ stationMode }: { stationMode: StationMode }) {
     location.pathname === "/kitchen/expo";
   const hideForRoute =
     location.pathname === "/" ||
+    suppress ||
     isCloudBackOfficeSession ||
     location.pathname.startsWith("/pos/") ||
     hideMainForScreen ||
