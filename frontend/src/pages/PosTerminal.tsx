@@ -219,6 +219,7 @@ export default function PosTerminal() {
   const navigate = useNavigate();
   const orderType = mode && orderTypeLabels[mode] ? orderTypeLabels[mode] : "Dine In";
   const orderTypeValue = mode === "takeout" ? "TAKEOUT" : mode === "delivery" ? "DELIVERY" : "DINE_IN";
+  const recallAction = new URLSearchParams(location.search).get("action") === "recall";
   const [currentUser, setCurrentUser] = useState(() => getCurrentUser());
   const [pinOpen, setPinOpen] = useState(() => !getCurrentUser());
   const [categories, setCategories] = useState<MenuCategory[]>([]);
@@ -424,25 +425,46 @@ export default function PosTerminal() {
 
   useEffect(() => {
     const action = new URLSearchParams(location.search).get("action");
-    if (action === "recall") {
-      const orderParam = new URLSearchParams(location.search).get("order");
+    if (action !== "recall") return;
+
+    const params = new URLSearchParams(location.search);
+    const orderParam = params.get("order");
+
+    const bootRecall = async () => {
       if (orderParam) {
-        refreshOrder(orderParam).catch(console.error);
+        await refreshOrder(orderParam);
       } else {
-        openRecall().catch(console.error);
+        await openRecall();
       }
-    }
-  }, [location.search]);
+    };
+
+    bootRecall()
+      .catch(console.error)
+      .finally(() => {
+        const clean = new URLSearchParams(location.search);
+        clean.delete("action");
+        clean.delete("order");
+        clean.delete("edit");
+        navigate(
+          {
+            pathname: location.pathname,
+            search: clean.toString() ? `?${clean.toString()}` : ""
+          },
+          { replace: true }
+        );
+      });
+  }, [location.pathname, location.search, navigate]);
 
   useEffect(() => {
     if (orderTypeValue !== "DINE_IN") return;
+    if (recallAction || recallOpen) return;
     if (tablePrompted) return;
     if (orderDetails.tableId) return;
     if (pinOpen) return;
     setActiveAreaId(null);
     setTableSelectOpen(true);
     setTablePrompted(true);
-  }, [orderTypeValue, tables.length, orderDetails.tableId, tablePrompted, pinOpen]);
+  }, [orderTypeValue, tables.length, orderDetails.tableId, tablePrompted, pinOpen, recallAction, recallOpen]);
 
 
   const filteredItems = useMemo(() => {
