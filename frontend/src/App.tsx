@@ -226,10 +226,7 @@ function StationTypeFloat() {
   const navigate = useNavigate();
   const location = useLocation();
   const language = useAppLanguage();
-  const isCloudPlatformRoute =
-    location.pathname.startsWith("/cloud/platform") || location.pathname.startsWith("/settings/cloud-");
-
-  if (location.pathname === "/station-mode" || isCloudPlatformRoute) return null;
+  if (location.pathname === "/station-mode") return null;
 
   return (
     <button
@@ -247,15 +244,12 @@ function HomeFloat({ stationMode }: { stationMode: StationMode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const language = useAppLanguage();
-  const isCloudPlatformRoute =
-    location.pathname.startsWith("/cloud/platform") || location.pathname.startsWith("/settings/cloud-");
   const hideMainForScreen =
     location.pathname === "/hostess" ||
     location.pathname === "/kitchen" ||
     location.pathname === "/kitchen/expo";
   const hideForRoute =
     location.pathname === "/" ||
-    isCloudPlatformRoute ||
     location.pathname.startsWith("/pos/") ||
     hideMainForScreen ||
     (stationMode !== "full" && location.pathname !== "/station-mode");
@@ -394,8 +388,8 @@ function HomeFloat({ stationMode }: { stationMode: StationMode }) {
         bottom: typeof dock.bottom === "number" ? `${dock.bottom}px` : undefined,
         left: typeof dock.left === "number" ? `${dock.left}px` : undefined
       }}
-      onClick={() => goBackOrHome(navigate)}
-      aria-label={t("back_to_previous_screen", language)}
+      onClick={() => navigate("/")}
+      aria-label={t("main_screen", language)}
     >
       {t("main_screen", language)}
     </button>
