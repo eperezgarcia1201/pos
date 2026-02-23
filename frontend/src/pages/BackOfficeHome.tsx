@@ -198,6 +198,7 @@ export default function BackOfficeHome() {
     const query = new URLSearchParams(location.search);
     const impersonationToken = query.get("impersonationToken");
     if (!impersonationToken) return;
+    sessionStorage.setItem("pos_cloud_backoffice_session", "1");
 
     let cancelled = false;
     const applyImpersonation = async () => {
@@ -575,6 +576,7 @@ export default function BackOfficeHome() {
                   onClick={() => {
                     clearCurrentUser();
                     sessionStorage.removeItem("pos_allowed_group");
+                    sessionStorage.removeItem("pos_cloud_backoffice_session");
                     navigate("/");
                   }}
                 >

@@ -54,6 +54,8 @@ import {
   type StationMode
 } from "./lib/stationMode";
 
+const CLOUD_BACKOFFICE_SESSION_KEY = "pos_cloud_backoffice_session";
+
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -127,6 +129,7 @@ export default function App() {
     if (isHome) {
       setAllowedGroup(null);
       sessionStorage.removeItem("pos_allowed_group");
+      sessionStorage.removeItem(CLOUD_BACKOFFICE_SESSION_KEY);
       clearCurrentUser();
     }
   }, [isHome]);
@@ -226,7 +229,9 @@ function StationTypeFloat() {
   const navigate = useNavigate();
   const location = useLocation();
   const language = useAppLanguage();
-  if (location.pathname === "/station-mode") return null;
+  const isCloudBackOfficeSession =
+    typeof window !== "undefined" && sessionStorage.getItem(CLOUD_BACKOFFICE_SESSION_KEY) === "1";
+  if (location.pathname === "/station-mode" || isCloudBackOfficeSession) return null;
 
   return (
     <button
@@ -244,12 +249,15 @@ function HomeFloat({ stationMode }: { stationMode: StationMode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const language = useAppLanguage();
+  const isCloudBackOfficeSession =
+    typeof window !== "undefined" && sessionStorage.getItem(CLOUD_BACKOFFICE_SESSION_KEY) === "1";
   const hideMainForScreen =
     location.pathname === "/hostess" ||
     location.pathname === "/kitchen" ||
     location.pathname === "/kitchen/expo";
   const hideForRoute =
     location.pathname === "/" ||
+    isCloudBackOfficeSession ||
     location.pathname.startsWith("/pos/") ||
     hideMainForScreen ||
     (stationMode !== "full" && location.pathname !== "/station-mode");
