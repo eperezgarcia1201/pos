@@ -216,6 +216,23 @@ export default function Orders() {
     setPaymentOpen(true);
   };
 
+  const getPosModeForOrder = (order: Order) => {
+    if (order.orderType === "TAKEOUT") return "takeout";
+    if (order.orderType === "DELIVERY") return "delivery";
+    return "dinein";
+  };
+
+  const openTicketInPos = (order: Order, edit = false) => {
+    const params = new URLSearchParams({
+      action: "recall",
+      order: order.id
+    });
+    if (edit) {
+      params.set("edit", "1");
+    }
+    navigate(`/pos/${getPosModeForOrder(order)}?${params.toString()}`);
+  };
+
   return (
     <div className="screen-shell recall-order-screen">
       <header className="screen-header">
@@ -309,9 +326,16 @@ export default function Orders() {
                 <div className="form-row recall-action-row recall-primary-actions">
                   <button
                     type="button"
-                    onClick={() => navigate(`/pos/dinein?action=recall&order=${selectedOrder.id}`)}
+                    onClick={() => openTicketInPos(selectedOrder)}
                   >
                     Recall
+                  </button>
+                  <button
+                    type="button"
+                    className="edit-ticket-action"
+                    onClick={() => openTicketInPos(selectedOrder, true)}
+                  >
+                    Edit Ticket
                   </button>
                   <button
                     type="button"

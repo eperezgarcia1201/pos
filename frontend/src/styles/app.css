@@ -10806,6 +10806,10 @@ body {
   grid-column: span 2;
 }
 
+.recall-order-screen .recall-primary-actions .edit-ticket-action {
+  grid-column: span 2;
+}
+
 .recall-order-screen .recall-void-row {
   grid-template-columns: minmax(0, 1fr) auto;
 }
@@ -10981,6 +10985,10 @@ body {
   }
 
   .recall-order-screen .recall-primary-actions button:first-child {
+    grid-column: span 1;
+  }
+
+  .recall-order-screen .recall-primary-actions .edit-ticket-action {
     grid-column: span 1;
   }
 
